@@ -115,6 +115,11 @@ export const liveAPI = {
   getMatches: async () => (await api.get('/live')).data,
 };
 
+// Opportunities
+export const opportunitiesAPI = {
+  getDaily: async () => (await api.get('/opportunities')).data,
+};
+
 // AI
 export const aiAPI = {
   getPredictions: async () => (await api.get('/ai/predictions')).data,

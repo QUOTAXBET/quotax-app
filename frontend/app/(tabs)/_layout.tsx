@@ -42,11 +42,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="live"
         options={{
-          title: 'Live',
+          title: 'Opportunità',
           tabBarIcon: ({ color, size }) => (
             <View>
-              <Ionicons name="pulse" size={size} color={color} />
-              <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF4D4D' }} />
+              <Ionicons name="star" size={size} color={color} />
+              <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700' }} />
             </View>
           ),
         }}

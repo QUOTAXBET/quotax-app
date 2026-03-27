@@ -2,6 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+const colors = {
+  background: '#0B0F14',
+  card: '#1A2332',
+  cardActive: '#00FF88',
+  primary: '#00FF88',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#9CA3AF',
+  border: '#2A3847',
+};
+
 interface SportFilterProps {
   selected: string;
   onSelect: (sport: string) => void;
@@ -20,6 +30,7 @@ export default function SportFilter({ selected, onSelect }: SportFilterProps) {
       horizontal 
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      style={styles.scrollView}
     >
       {sports.map((sport) => (
         <TouchableOpacity
@@ -33,7 +44,7 @@ export default function SportFilter({ selected, onSelect }: SportFilterProps) {
           <Ionicons 
             name={sport.icon as any} 
             size={18} 
-            color={selected === sport.id ? '#fff' : '#9CA3AF'} 
+            color={selected === sport.id ? colors.background : colors.textSecondary} 
           />
           <Text style={[
             styles.buttonText,
@@ -48,32 +59,10 @@ export default function SportFilter({ selected, onSelect }: SportFilterProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#1F2937',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  buttonActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
-  },
-  buttonText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  buttonTextActive: {
-    color: '#fff',
-  },
+  scrollView: { flexGrow: 0 },
+  container: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
+  button: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  buttonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  buttonText: { color: colors.textSecondary, fontSize: 14, fontWeight: '500' },
+  buttonTextActive: { color: colors.background, fontWeight: '700' },
 });

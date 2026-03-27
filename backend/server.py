@@ -614,6 +614,316 @@ async def get_social_activity():
         "subscribed_today": random.randint(12, 45),
     }
 
+# ==================== MATCHES ENDPOINTS ====================
+
+def generate_matches(sport_filter: str = "all") -> List[Dict]:
+    """Generate realistic upcoming matches"""
+    matches = []
+    
+    # Soccer matches
+    if sport_filter in ["all", "soccer"]:
+        for league_name, teams in SOCCER_LEAGUES.items():
+            num_matches = random.randint(1, 3)
+            for _ in range(num_matches):
+                home, away = random.sample(teams, 2)
+                match_date = datetime.now(timezone.utc) + timedelta(hours=random.randint(2, 96))
+                matches.append({
+                    "match_id": f"m_{uuid.uuid4().hex[:8]}",
+                    "sport": "soccer",
+                    "league": league_name,
+                    "home_team": home,
+                    "away_team": away,
+                    "match_date": match_date.isoformat(),
+                    "odds_home": round(random.uniform(1.3, 3.5), 2),
+                    "odds_draw": round(random.uniform(2.8, 4.5), 2),
+                    "odds_away": round(random.uniform(1.5, 4.0), 2),
+                    "status": "upcoming",
+                })
+    
+    # NBA matches
+    if sport_filter in ["all", "nba"]:
+        for _ in range(random.randint(2, 5)):
+            home, away = random.sample(NBA_TEAMS, 2)
+            match_date = datetime.now(timezone.utc) + timedelta(hours=random.randint(2, 72))
+            matches.append({
+                "match_id": f"m_{uuid.uuid4().hex[:8]}",
+                "sport": "nba",
+                "league": "NBA",
+                "home_team": home,
+                "away_team": away,
+                "match_date": match_date.isoformat(),
+                "odds_home": round(random.uniform(1.4, 2.8), 2),
+                "odds_draw": None,
+                "odds_away": round(random.uniform(1.4, 2.8), 2),
+                "status": "upcoming",
+            })
+    
+    # UFC matches
+    if sport_filter in ["all", "ufc"]:
+        for division, fighters in UFC_FIGHTERS.items():
+            if len(fighters) >= 2:
+                home, away = random.sample(fighters, 2)
+                match_date = datetime.now(timezone.utc) + timedelta(hours=random.randint(12, 168))
+                matches.append({
+                    "match_id": f"m_{uuid.uuid4().hex[:8]}",
+                    "sport": "ufc",
+                    "league": f"UFC {division}",
+                    "home_team": home,
+                    "away_team": away,
+                    "match_date": match_date.isoformat(),
+                    "odds_home": round(random.uniform(1.3, 3.0), 2),
+                    "odds_draw": None,
+                    "odds_away": round(random.uniform(1.3, 3.0), 2),
+                    "status": "upcoming",
+                })
+    
+    random.shuffle(matches)
+    return matches[:15]  # Limit to 15 matches
+
+
+def generate_predictions_for_matches(matches: List[Dict]) -> List[Dict]:
+    """Generate AI predictions for matches"""
+    predictions = []
+    risk_levels = ["low", "medium", "high"]
+    
+    for match in matches:
+        predicted_outcome = random.choice(["home", "away"] if match["sport"] != "soccer" else ["home", "draw", "away"])
+        confidence = random.randint(55, 92)
+        
+        if predicted_outcome == "home":
+            odds = match["odds_home"]
+        elif predicted_outcome == "away":
+            odds = match["odds_away"]
+        else:
+            odds = match.get("odds_draw", 3.0) or 3.0
+        
+        risk = "low" if confidence > 75 else "medium" if confidence > 60 else "high"
+        
+        predictions.append({
+            "prediction_id": f"pred_{uuid.uuid4().hex[:8]}",
+            "match_id": match["match_id"],
+            "sport": match["sport"],
+            "league": match["league"],
+            "home_team": match["home_team"],
+            "away_team": match["away_team"],
+            "predicted_outcome": predicted_outcome,
+            "confidence": confidence,
+            "odds": odds,
+            "risk_level": risk,
+            "analysis": f"L'analisi AI indica {match['home_team'] if predicted_outcome == 'home' else match['away_team'] if predicted_outcome == 'away' else 'Pareggio'} come esito più probabile. Edge stimato: +{random.randint(5, 18)}%",
+            "value_bet": random.random() > 0.5,
+        })
+    
+    return predictions
+
+# Cache matches per request cycle to keep predictions aligned
+_cached_matches: Dict[str, Any] = {"data": None, "time": None}
+
+def get_cached_matches(sport_filter: str = "all") -> List[Dict]:
+    """Cache matches for 60 seconds so predictions stay aligned"""
+    import time
+    now = time.time()
+    cache_key = f"{sport_filter}"
+    
+    if (_cached_matches.get("key") == cache_key and 
+        _cached_matches.get("time") and 
+        now - _cached_matches["time"] < 60):
+        return _cached_matches["data"]
+    
+    matches = generate_matches(sport_filter)
+    _cached_matches["data"] = matches
+    _cached_matches["time"] = now
+    _cached_matches["key"] = cache_key
+    return matches
+
+
+@api_router.get("/matches")
+async def get_all_matches():
+    """Get all upcoming matches"""
+    return get_cached_matches("all")
+
+
+@api_router.get("/matches/{sport}")
+async def get_matches_by_sport(sport: str):
+    """Get matches by sport"""
+    if sport not in ["soccer", "nba", "ufc"]:
+        raise HTTPException(status_code=400, detail="Sport non valido")
+    return get_cached_matches(sport)
+
+
+@api_router.get("/predictions")
+async def get_all_predictions():
+    """Get AI predictions for all matches"""
+    matches = get_cached_matches("all")
+    return generate_predictions_for_matches(matches)
+
+
+@api_router.get("/predictions/{sport}")
+async def get_predictions_by_sport(sport: str):
+    """Get AI predictions by sport"""
+    if sport not in ["soccer", "nba", "ufc"]:
+        raise HTTPException(status_code=400, detail="Sport non valido")
+    matches = get_cached_matches(sport)
+    return generate_predictions_for_matches(matches)
+
+
+# ==================== BETS ENDPOINTS ====================
+
+@api_router.post("/bets/simulate")
+async def simulate_bet(request: Request):
+    """Simulate a bet - available to all users"""
+    body = await request.json()
+    match_id = body.get("match_id")
+    bet_type = body.get("bet_type")
+    stake = body.get("stake", 0)
+    
+    if not match_id or not bet_type or stake <= 0:
+        raise HTTPException(status_code=400, detail="Parametri non validi")
+    
+    # Find match odds
+    all_matches = get_cached_matches("all")
+    match = None
+    for m in all_matches:
+        if m["match_id"] == match_id:
+            match = m
+            break
+    
+    if not match:
+        raise HTTPException(status_code=404, detail="Partita non trovata")
+    
+    # Get odds based on bet type
+    if bet_type == "home":
+        odds = match["odds_home"]
+    elif bet_type == "away":
+        odds = match["odds_away"]
+    elif bet_type == "draw":
+        odds = match.get("odds_draw", 3.0) or 3.0
+    else:
+        raise HTTPException(status_code=400, detail="Tipo scommessa non valido")
+    
+    # Calculate simulation
+    win_probability = round(1 / odds * 100, 1)
+    potential_payout = round(stake * odds, 2)
+    potential_profit = round(potential_payout - stake, 2)
+    expected_value = round((potential_payout * win_probability / 100) - stake, 2)
+    
+    return {
+        "match_id": match_id,
+        "bet_type": bet_type,
+        "stake": stake,
+        "odds": odds,
+        "potential_payout": potential_payout,
+        "potential_profit": potential_profit,
+        "win_probability": win_probability,
+        "expected_value": expected_value,
+        "risk_level": "low" if win_probability > 50 else "medium" if win_probability > 35 else "high",
+    }
+
+
+@api_router.post("/bets")
+async def place_bet(request: Request, user: User = Depends(require_user)):
+    """Place a virtual bet"""
+    body = await request.json()
+    match_id = body.get("match_id")
+    bet_type = body.get("bet_type")
+    stake = body.get("stake", 0)
+    
+    if not match_id or not bet_type or stake <= 0:
+        raise HTTPException(status_code=400, detail="Parametri non validi")
+    
+    if stake > user.wallet_balance:
+        raise HTTPException(status_code=400, detail="Saldo insufficiente")
+    
+    # Find match
+    all_matches = get_cached_matches("all")
+    match = None
+    for m in all_matches:
+        if m["match_id"] == match_id:
+            match = m
+            break
+    
+    if not match:
+        raise HTTPException(status_code=404, detail="Partita non trovata")
+    
+    # Get odds
+    if bet_type == "home":
+        odds = match["odds_home"]
+    elif bet_type == "away":
+        odds = match["odds_away"]
+    elif bet_type == "draw":
+        odds = match.get("odds_draw", 3.0) or 3.0
+    else:
+        raise HTTPException(status_code=400, detail="Tipo scommessa non valido")
+    
+    # Simulate result (random for now)
+    won = random.random() < (1 / odds)
+    payout = round(stake * odds, 2) if won else 0
+    profit = round(payout - stake, 2)
+    
+    # Update wallet
+    new_balance = user.wallet_balance - stake + payout
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"wallet_balance": round(new_balance, 2)},
+         "$inc": {"total_bets": 1, "total_wins": 1 if won else 0, "total_profit": profit}}
+    )
+    
+    # Save bet
+    bet = {
+        "bet_id": f"bet_{uuid.uuid4().hex[:8]}",
+        "user_id": user.user_id,
+        "match_id": match_id,
+        "match_info": f"{match['home_team']} vs {match['away_team']}",
+        "league": match["league"],
+        "sport": match["sport"],
+        "bet_type": bet_type,
+        "odds": odds,
+        "stake": stake,
+        "payout": payout,
+        "profit": profit,
+        "won": won,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.bets.insert_one(bet)
+    
+    return {
+        "success": True,
+        "won": won,
+        "payout": payout,
+        "profit": profit,
+        "new_balance": round(new_balance, 2),
+        "message": f"{'Hai vinto +€' + str(payout) + '!' if won else 'Scommessa persa. Ritenta!'}",
+    }
+
+
+@api_router.get("/bets/history")
+async def get_bet_history(user: User = Depends(require_user)):
+    """Get user bet history"""
+    bets = await db.bets.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    return bets
+
+
+@api_router.get("/user/wallet")
+async def get_wallet(user: User = Depends(require_user)):
+    """Get user wallet info"""
+    return {
+        "balance": user.wallet_balance,
+        "total_bets": user.total_bets,
+        "total_wins": user.total_wins,
+        "total_profit": user.total_profit,
+    }
+
+
+@api_router.post("/user/wallet/reset")
+async def reset_wallet(user: User = Depends(require_user)):
+    """Reset user wallet"""
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"wallet_balance": 1000.0, "total_bets": 0, "total_wins": 0, "total_profit": 0.0}}
+    )
+    return {"success": True, "balance": 1000.0}
+
+
 # ==================== ROOT ====================
 
 @api_router.get("/")

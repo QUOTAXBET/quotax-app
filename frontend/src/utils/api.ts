@@ -44,7 +44,16 @@ export const authAPI = {
   logout: async () => { await api.post('/auth/logout'); setSessionToken(null); },
 };
 
-// Public (for guests)
+// Matches + Predictions
+export const matchesAPI = {
+  getAll: async () => (await api.get('/matches')).data,
+  getBySport: async (sport: string) => (await api.get(`/matches/${sport}`)).data,
+  getPredictions: async () => (await api.get('/predictions')).data,
+  getPredictionsBySport: async (sport: string) => (await api.get(`/predictions/${sport}`)).data,
+  getStats: async () => (await api.get('/public/stats')).data,
+};
+
+// Public (Guest)
 export const publicAPI = {
   getStats: async () => (await api.get('/public/stats')).data,
   getPreviewSchedule: async () => (await api.get('/public/preview-schedine')).data,
@@ -54,11 +63,6 @@ export const publicAPI = {
 // Schedine
 export const schedineAPI = {
   getAll: async () => (await api.get('/schedine')).data,
-};
-
-// Dashboard
-export const dashboardAPI = {
-  getStats: async () => (await api.get('/dashboard/stats')).data,
 };
 
 // Live
@@ -80,6 +84,21 @@ export const subscriptionAPI = {
 // Social
 export const socialAPI = {
   getActivity: async () => (await api.get('/social/activity')).data,
+};
+
+// User
+export const userAPI = {
+  getWallet: async () => (await api.get('/user/wallet')).data,
+  resetWallet: async () => (await api.post('/user/wallet/reset')).data,
+};
+
+// Bets
+export const betsAPI = {
+  simulate: async (matchId: string, betType: string, stake: number) => 
+    (await api.post('/bets/simulate', { match_id: matchId, bet_type: betType, stake })).data,
+  place: async (matchId: string, betType: string, stake: number) => 
+    (await api.post('/bets', { match_id: matchId, bet_type: betType, stake })).data,
+  getHistory: async () => (await api.get('/bets/history')).data,
 };
 
 export default api;

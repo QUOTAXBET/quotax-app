@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View, Text, StyleSheet } from 'react-native';
+import { Platform, View } from 'react-native';
 import { colors } from '../../src/utils/theme';
 import { useAuth } from '../../src/context/AuthContext';
 
@@ -14,22 +14,22 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.backgroundLight,
-          borderTopColor: colors.border,
+          backgroundColor: '#111820',
+          borderTopColor: '#1F2933',
           height: Platform.OS === 'ios' ? 88 : 64,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: '#00FF88',
+        tabBarInactiveTintColor: '#6B7280',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <Ionicons name="grid" size={size} color={color} />,
+          title: 'Partite',
+          tabBarIcon: ({ color, size }) => <Ionicons name="football" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -46,19 +46,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <View>
               <Ionicons name="pulse" size={size} color={color} />
-              <View style={styles.liveDot} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ai"
-        options={{
-          title: 'AI',
-          tabBarIcon: ({ color, size }) => (
-            <View>
-              <Ionicons name="sparkles" size={size} color={isPremium ? colors.gold : color} />
-              {!isPremium && <View style={styles.lockBadge}><Ionicons name="lock-closed" size={8} color={colors.gold} /></View>}
+              <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF4D4D' }} />
             </View>
           ),
         }}
@@ -73,8 +61,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  liveDot: { position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.loss },
-  lockBadge: { position: 'absolute', bottom: -4, right: -4, backgroundColor: colors.background, borderRadius: 6, padding: 2 },
-});

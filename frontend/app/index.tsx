@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,8 +8,6 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-
 export default function LoginScreen() {
   const router = useRouter();
   const { user, loading, login, isAuthenticated } = useAuth();
@@ -17,7 +15,6 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Handle deep links for OAuth callback
     const handleUrl = async (event: { url: string }) => {
       const url = event.url;
       if (url.includes('session_id=')) {
@@ -28,17 +25,12 @@ export default function LoginScreen() {
       }
     };
 
-    // Check initial URL
     Linking.getInitialURL().then((url) => {
       if (url) handleUrl({ url });
     });
 
-    // Listen for URL events
     const subscription = Linking.addEventListener('url', handleUrl);
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -54,8 +46,7 @@ export default function LoginScreen() {
       await login(sessionId);
       router.replace('/(tabs)');
     } catch (err: any) {
-      setError('Login failed. Please try again.');
-      console.error('Login error:', err);
+      setError('Accesso fallito. Riprova.');
     } finally {
       setAuthLoading(false);
     }
@@ -71,7 +62,6 @@ export default function LoginScreen() {
       if (Platform.OS === 'web') {
         redirectUrl = window.location.origin;
       } else {
-        // For native, use the Expo URL
         redirectUrl = Linking.createURL('');
       }
       
@@ -89,8 +79,7 @@ export default function LoginScreen() {
         }
       }
     } catch (err: any) {
-      setError('Could not open login page');
-      console.error('Auth error:', err);
+      setError('Impossibile aprire la pagina di login');
     } finally {
       setAuthLoading(false);
     }
@@ -115,22 +104,22 @@ export default function LoginScreen() {
           <View style={styles.logoIcon}>
             <Ionicons name="analytics" size={48} color="#6366F1" />
           </View>
-          <Text style={styles.title}>BetSmart AI</Text>
-          <Text style={styles.subtitle}>Intelligent Sports Betting Insights</Text>
+          <Text style={styles.title}>PronoSmart AI</Text>
+          <Text style={styles.subtitle}>Pronostici Sportivi Intelligenti</Text>
         </View>
 
         <View style={styles.features}>
           <View style={styles.featureItem}>
             <Ionicons name="football" size={24} color="#10B981" />
-            <Text style={styles.featureText}>Soccer, NBA & UFC</Text>
+            <Text style={styles.featureText}>Calcio, NBA e UFC</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="flash" size={24} color="#F59E0B" />
-            <Text style={styles.featureText}>AI-Powered Predictions</Text>
+            <Text style={styles.featureText}>Pronostici con IA</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="trending-up" size={24} color="#6366F1" />
-            <Text style={styles.featureText}>Bet Simulation</Text>
+            <Text style={styles.featureText}>Simulazione Scommesse</Text>
           </View>
         </View>
 
@@ -147,18 +136,18 @@ export default function LoginScreen() {
             ) : (
               <>
                 <Ionicons name="logo-google" size={20} color="#fff" />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                <Text style={styles.googleButtonText}>Accedi con Google</Text>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.guestButton} onPress={continueAsGuest}>
-            <Text style={styles.guestButtonText}>Continue as Guest</Text>
+            <Text style={styles.guestButtonText}>Continua come Ospite</Text>
           </TouchableOpacity>
 
           <Text style={styles.disclaimer}>
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-            This app is for entertainment purposes only.
+            Continuando, accetti i nostri Termini di Servizio.
+            Questa app è solo a scopo di intrattenimento.
           </Text>
         </View>
       </View>

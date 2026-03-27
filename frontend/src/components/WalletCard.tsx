@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface WalletCardProps {
   balance: number;
@@ -18,29 +17,29 @@ export default function WalletCard({ balance, totalBets, totalWins, totalProfit 
       <View style={styles.balanceSection}>
         <View style={styles.balanceHeader}>
           <Ionicons name="wallet" size={24} color="#6366F1" />
-          <Text style={styles.balanceLabel}>Virtual Balance</Text>
+          <Text style={styles.balanceLabel}>Saldo Virtuale</Text>
         </View>
-        <Text style={styles.balanceAmount}>${balance.toFixed(2)}</Text>
+        <Text style={styles.balanceAmount}>€{balance.toFixed(2)}</Text>
       </View>
 
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{totalBets}</Text>
-          <Text style={styles.statLabel}>Total Bets</Text>
+          <Text style={styles.statLabel}>Scommesse</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{totalWins}</Text>
-          <Text style={styles.statLabel}>Wins</Text>
+          <Text style={styles.statLabel}>Vinte</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: totalProfit >= 0 ? '#10B981' : '#EF4444' }]}>
-            {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
+            {totalProfit >= 0 ? '+' : ''}€{totalProfit.toFixed(2)}
           </Text>
-          <Text style={styles.statLabel}>Profit</Text>
+          <Text style={styles.statLabel}>Profitto</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{winRate}%</Text>
-          <Text style={styles.statLabel}>Win Rate</Text>
+          <Text style={styles.statLabel}>% Vittorie</Text>
         </View>
       </View>
     </View>

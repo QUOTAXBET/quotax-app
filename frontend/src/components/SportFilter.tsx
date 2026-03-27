@@ -8,8 +8,8 @@ interface SportFilterProps {
 }
 
 const sports = [
-  { id: 'all', label: 'All', icon: 'grid' },
-  { id: 'soccer', label: 'Soccer', icon: 'football' },
+  { id: 'all', label: 'Tutti', icon: 'grid' },
+  { id: 'soccer', label: 'Calcio', icon: 'football' },
   { id: 'nba', label: 'NBA', icon: 'basketball' },
   { id: 'ufc', label: 'UFC', icon: 'fitness' },
 ];

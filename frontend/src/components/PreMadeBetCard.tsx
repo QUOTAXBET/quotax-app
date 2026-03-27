@@ -36,17 +36,17 @@ export default function PreMadeBetCard({ bet, onPress }: PreMadeBetCardProps) {
 
       <View style={styles.details}>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Total Odds</Text>
+          <Text style={styles.detailLabel}>Quota Totale</Text>
           <Text style={styles.detailValue}>{bet.total_odds.toFixed(2)}</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Suggested Stake</Text>
-          <Text style={styles.detailValue}>${bet.stake_recommendation}</Text>
+          <Text style={styles.detailLabel}>Puntata Suggerita</Text>
+          <Text style={styles.detailValue}>€{bet.stake_recommendation}</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Potential Win</Text>
+          <Text style={styles.detailLabel}>Vincita Potenziale</Text>
           <Text style={[styles.detailValue, { color: '#10B981' }]}>
-            ${bet.potential_payout.toFixed(2)}
+            €{bet.potential_payout.toFixed(2)}
           </Text>
         </View>
       </View>
@@ -54,10 +54,10 @@ export default function PreMadeBetCard({ bet, onPress }: PreMadeBetCardProps) {
       <View style={styles.footer}>
         <View style={styles.matchCount}>
           <Ionicons name="layers" size={14} color="#6B7280" />
-          <Text style={styles.matchCountText}>{bet.matches.length} matches</Text>
+          <Text style={styles.matchCountText}>{bet.matches.length} partite</Text>
         </View>
         <TouchableOpacity style={styles.viewButton}>
-          <Text style={styles.viewButtonText}>View Details</Text>
+          <Text style={styles.viewButtonText}>Vedi Dettagli</Text>
           <Ionicons name="chevron-forward" size={16} color="#6366F1" />
         </TouchableOpacity>
       </View>

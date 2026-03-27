@@ -15,11 +15,20 @@ const getRiskColor = (risk: string) => {
   }
 };
 
+const getRiskLabel = (risk: string) => {
+  switch (risk) {
+    case 'low': return 'BASSO';
+    case 'medium': return 'MEDIO';
+    case 'high': return 'ALTO';
+    default: return risk.toUpperCase();
+  }
+};
+
 const getOutcomeLabel = (outcome: string, match: Match) => {
   switch (outcome) {
     case 'home': return match.home_team;
     case 'away': return match.away_team;
-    case 'draw': return 'Draw';
+    case 'draw': return 'Pareggio';
     default: return outcome;
   }
 };
@@ -31,8 +40,10 @@ export default function PredictionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'confidence' | 'ev'>('confidence');
+  const [error, setError] = useState('');
 
   const fetchData = async () => {
+    setError('');
     try {
       const [predData, matchData] = await Promise.all([
         selectedSport === 'all'
@@ -44,19 +55,19 @@ export default function PredictionsScreen() {
       ]);
 
       const matchMap: Record<string, Match> = {};
-      matchData.forEach((m: Match) => {
+      (matchData || []).forEach((m: Match) => {
         matchMap[m.match_id] = m;
       });
       setMatches(matchMap);
 
-      // Sort predictions
-      const sorted = [...predData].sort((a, b) => {
+      const sorted = [...(predData || [])].sort((a, b) => {
         if (sortBy === 'confidence') return b.confidence - a.confidence;
         return b.expected_value - a.expected_value;
       });
       setPredictions(sorted);
-    } catch (error) {
-      console.error('Error fetching predictions:', error);
+    } catch (err: any) {
+      console.error('Errore caricamento pronostici:', err);
+      setError('Errore nel caricamento');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -76,14 +87,14 @@ export default function PredictionsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI Predictions</Text>
+        <Text style={styles.title}>Pronostici IA</Text>
         <View style={styles.sortButtons}>
           <TouchableOpacity
             style={[styles.sortButton, sortBy === 'confidence' && styles.sortButtonActive]}
             onPress={() => setSortBy('confidence')}
           >
             <Text style={[styles.sortText, sortBy === 'confidence' && styles.sortTextActive]}>
-              Confidence
+              Affidabilità
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -91,7 +102,7 @@ export default function PredictionsScreen() {
             onPress={() => setSortBy('ev')}
           >
             <Text style={[styles.sortText, sortBy === 'ev' && styles.sortTextActive]}>
-              Value
+              Valore
             </Text>
           </TouchableOpacity>
         </View>
@@ -102,7 +113,12 @@ export default function PredictionsScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Analyzing predictions...</Text>
+          <Text style={styles.loadingText}>Analisi pronostici...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
         <ScrollView
@@ -120,7 +136,7 @@ export default function PredictionsScreen() {
           {predictions.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="analytics-outline" size={48} color="#6B7280" />
-              <Text style={styles.emptyText}>No predictions available</Text>
+              <Text style={styles.emptyText}>Nessun pronostico disponibile</Text>
             </View>
           ) : (
             predictions.map((pred) => {
@@ -131,11 +147,13 @@ export default function PredictionsScreen() {
                 <View key={pred.prediction_id} style={styles.predictionCard}>
                   <View style={styles.cardHeader}>
                     <View style={styles.sportBadge}>
-                      <Text style={styles.sportText}>{pred.sport.toUpperCase()}</Text>
+                      <Text style={styles.sportText}>
+                        {pred.sport === 'soccer' ? 'CALCIO' : pred.sport.toUpperCase()}
+                      </Text>
                     </View>
                     <View style={[styles.riskBadge, { backgroundColor: getRiskColor(pred.risk_level) + '20' }]}>
                       <Text style={[styles.riskText, { color: getRiskColor(pred.risk_level) }]}>
-                        {pred.risk_level.toUpperCase()} RISK
+                        RISCHIO {getRiskLabel(pred.risk_level)}
                       </Text>
                     </View>
                   </View>
@@ -147,7 +165,7 @@ export default function PredictionsScreen() {
 
                   <View style={styles.predictionDetails}>
                     <View style={styles.predictionMain}>
-                      <Text style={styles.pickLabel}>Our Pick</Text>
+                      <Text style={styles.pickLabel}>La Nostra Scelta</Text>
                       <Text style={styles.pickValue}>
                         {getOutcomeLabel(pred.predicted_outcome, match)}
                       </Text>
@@ -156,7 +174,7 @@ export default function PredictionsScreen() {
 
                     <View style={styles.statsRow}>
                       <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Confidence</Text>
+                        <Text style={styles.statLabel}>Affidabilità</Text>
                         <View style={styles.confidenceBar}>
                           <View
                             style={[
@@ -171,7 +189,7 @@ export default function PredictionsScreen() {
                       </View>
 
                       <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Expected Value</Text>
+                        <Text style={styles.statLabel}>Valore Atteso</Text>
                         <Text
                           style={[
                             styles.evValue,
@@ -249,6 +267,16 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#9CA3AF',
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  errorText: {
+    color: '#EF4444',
     fontSize: 14,
   },
   emptyContainer: {

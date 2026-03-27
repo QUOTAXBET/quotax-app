@@ -1,20 +1,42 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://sharp-edge-6.preview.emergentagent.com';
+// URL backend
+const API_URL = 'https://sharp-edge-6.preview.emergentagent.com';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  timeout: 15000,
 });
 
-// Add auth token to requests
-api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('session_token');
+// Token storage per piattaforma
+let sessionToken: string | null = null;
+
+export const setSessionToken = (token: string | null) => {
+  sessionToken = token;
+  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+    if (token) {
+      localStorage.setItem('session_token', token);
+    } else {
+      localStorage.removeItem('session_token');
+    }
+  }
+};
+
+export const getSessionToken = (): string | null => {
+  if (sessionToken) return sessionToken;
+  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+    return localStorage.getItem('session_token');
+  }
+  return null;
+};
+
+// Interceptor per token
+api.interceptors.request.use((config) => {
+  const token = getSessionToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,7 +47,7 @@ export const authAPI = {
   createSession: async (sessionId: string) => {
     const response = await api.post('/auth/session', { session_id: sessionId });
     if (response.data.session_token) {
-      await AsyncStorage.setItem('session_token', response.data.session_token);
+      setSessionToken(response.data.session_token);
     }
     return response.data;
   },
@@ -35,7 +57,7 @@ export const authAPI = {
   },
   logout: async () => {
     await api.post('/auth/logout');
-    await AsyncStorage.removeItem('session_token');
+    setSessionToken(null);
   },
 };
 

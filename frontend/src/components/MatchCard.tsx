@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Match, Prediction } from '../types';
 import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
 
 interface MatchCardProps {
   match: Match;
@@ -12,40 +13,37 @@ interface MatchCardProps {
 
 const getSportIcon = (sport: string) => {
   switch (sport) {
-    case 'soccer':
-      return 'football';
-    case 'nba':
-      return 'basketball';
-    case 'ufc':
-      return 'fitness';
-    default:
-      return 'trophy';
+    case 'soccer': return 'football';
+    case 'nba': return 'basketball';
+    case 'ufc': return 'fitness';
+    default: return 'trophy';
+  }
+};
+
+const getSportLabel = (sport: string) => {
+  switch (sport) {
+    case 'soccer': return 'CALCIO';
+    case 'nba': return 'NBA';
+    case 'ufc': return 'UFC';
+    default: return sport.toUpperCase();
   }
 };
 
 const getRiskColor = (risk: string) => {
   switch (risk) {
-    case 'low':
-      return '#10B981';
-    case 'medium':
-      return '#F59E0B';
-    case 'high':
-      return '#EF4444';
-    default:
-      return '#6B7280';
+    case 'low': return '#10B981';
+    case 'medium': return '#F59E0B';
+    case 'high': return '#EF4444';
+    default: return '#6B7280';
   }
 };
 
 const getOutcomeLabel = (outcome: string, homeTeam: string, awayTeam: string) => {
   switch (outcome) {
-    case 'home':
-      return homeTeam;
-    case 'away':
-      return awayTeam;
-    case 'draw':
-      return 'Draw';
-    default:
-      return outcome;
+    case 'home': return homeTeam;
+    case 'away': return awayTeam;
+    case 'draw': return 'Pareggio';
+    default: return outcome;
   }
 };
 
@@ -57,7 +55,7 @@ export default function MatchCard({ match, prediction, onPress }: MatchCardProps
       <View style={styles.header}>
         <View style={styles.sportBadge}>
           <Ionicons name={getSportIcon(match.sport) as any} size={14} color="#fff" />
-          <Text style={styles.sportText}>{match.sport.toUpperCase()}</Text>
+          <Text style={styles.sportText}>{getSportLabel(match.sport)}</Text>
         </View>
         <Text style={styles.league}>{match.league}</Text>
       </View>
@@ -70,7 +68,7 @@ export default function MatchCard({ match, prediction, onPress }: MatchCardProps
         
         <View style={styles.vsContainer}>
           <Text style={styles.vs}>VS</Text>
-          <Text style={styles.date}>{format(matchDate, 'MMM d')}</Text>
+          <Text style={styles.date}>{format(matchDate, 'd MMM', { locale: it })}</Text>
           <Text style={styles.time}>{format(matchDate, 'HH:mm')}</Text>
         </View>
 
@@ -82,17 +80,17 @@ export default function MatchCard({ match, prediction, onPress }: MatchCardProps
 
       <View style={styles.odds}>
         <View style={styles.oddsItem}>
-          <Text style={styles.oddsLabel}>Home</Text>
+          <Text style={styles.oddsLabel}>Casa</Text>
           <Text style={styles.oddsValue}>{match.odds_home}</Text>
         </View>
         {match.odds_draw && (
           <View style={styles.oddsItem}>
-            <Text style={styles.oddsLabel}>Draw</Text>
+            <Text style={styles.oddsLabel}>Pareggio</Text>
             <Text style={styles.oddsValue}>{match.odds_draw}</Text>
           </View>
         )}
         <View style={styles.oddsItem}>
-          <Text style={styles.oddsLabel}>Away</Text>
+          <Text style={styles.oddsLabel}>Ospite</Text>
           <Text style={styles.oddsValue}>{match.odds_away}</Text>
         </View>
       </View>
@@ -101,17 +99,17 @@ export default function MatchCard({ match, prediction, onPress }: MatchCardProps
         <View style={styles.prediction}>
           <View style={styles.predictionHeader}>
             <Ionicons name="analytics" size={16} color="#6366F1" />
-            <Text style={styles.predictionTitle}>AI Prediction</Text>
+            <Text style={styles.predictionTitle}>Pronostico IA</Text>
           </View>
           <View style={styles.predictionContent}>
             <View style={styles.predictionOutcome}>
-              <Text style={styles.outcomeLabel}>Pick:</Text>
+              <Text style={styles.outcomeLabel}>Scelta:</Text>
               <Text style={styles.outcomeValue}>
                 {getOutcomeLabel(prediction.predicted_outcome, match.home_team, match.away_team)}
               </Text>
             </View>
             <View style={styles.confidenceContainer}>
-              <Text style={styles.confidenceLabel}>Confidence</Text>
+              <Text style={styles.confidenceLabel}>Affidabilità</Text>
               <View style={styles.confidenceBar}>
                 <View 
                   style={[

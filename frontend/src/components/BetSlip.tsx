@@ -19,15 +19,9 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string>('');
 
-  const getOdds = (type: string) => {
-    if (type === 'home') return match.odds_home;
-    if (type === 'draw') return match.odds_draw || 0;
-    return match.odds_away;
-  };
-
   const simulateBet = async () => {
     if (!selectedBet || !stake || parseFloat(stake) <= 0) {
-      setError('Please select a bet and enter stake');
+      setError('Seleziona un esito e inserisci la puntata');
       return;
     }
     
@@ -37,7 +31,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
       const result = await betsAPI.simulate(match.match_id, selectedBet, parseFloat(stake));
       setSimulation(result);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Simulation failed');
+      setError(err.response?.data?.detail || 'Simulazione fallita');
     } finally {
       setLoading(false);
     }
@@ -45,7 +39,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
 
   const placeBet = async () => {
     if (!isLoggedIn) {
-      setError('Please login to place bets');
+      setError('Accedi per piazzare scommesse');
       return;
     }
     
@@ -56,7 +50,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
       onBetPlaced?.();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to place bet');
+      setError(err.response?.data?.detail || 'Errore nel piazzare la scommessa');
     } finally {
       setPlacing(false);
     }
@@ -64,14 +58,14 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
 
   const betOptions = [
     { type: 'home', label: match.home_team, odds: match.odds_home },
-    ...(match.odds_draw ? [{ type: 'draw', label: 'Draw', odds: match.odds_draw }] : []),
+    ...(match.odds_draw ? [{ type: 'draw', label: 'Pareggio', odds: match.odds_draw }] : []),
     { type: 'away', label: match.away_team, odds: match.odds_away },
   ];
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Place Bet</Text>
+        <Text style={styles.title}>Piazza Scommessa</Text>
         <TouchableOpacity onPress={onClose}>
           <Ionicons name="close" size={24} color="#9CA3AF" />
         </TouchableOpacity>
@@ -81,7 +75,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
         {match.home_team} vs {match.away_team}
       </Text>
 
-      <Text style={styles.sectionTitle}>Select Outcome</Text>
+      <Text style={styles.sectionTitle}>Seleziona Esito</Text>
       <View style={styles.betOptions}>
         {betOptions.map((option) => (
           <TouchableOpacity
@@ -108,13 +102,13 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Stake Amount ($)</Text>
+      <Text style={styles.sectionTitle}>Importo Puntata (€)</Text>
       <TextInput
         style={styles.input}
         value={stake}
         onChangeText={setStake}
         keyboardType="decimal-pad"
-        placeholder="Enter stake amount"
+        placeholder="Inserisci importo"
         placeholderTextColor="#6B7280"
       />
 
@@ -125,7 +119,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
             style={styles.quickStake}
             onPress={() => setStake(amount.toString())}
           >
-            <Text style={styles.quickStakeText}>${amount}</Text>
+            <Text style={styles.quickStakeText}>€{amount}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -142,36 +136,36 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
         ) : (
           <>
             <Ionicons name="calculator" size={20} color="#fff" />
-            <Text style={styles.simulateText}>Simulate Bet</Text>
+            <Text style={styles.simulateText}>Simula Scommessa</Text>
           </>
         )}
       </TouchableOpacity>
 
       {simulation && (
         <View style={styles.simulationResult}>
-          <Text style={styles.simulationTitle}>Simulation Result</Text>
+          <Text style={styles.simulationTitle}>Risultato Simulazione</Text>
           <View style={styles.simulationGrid}>
             <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Potential Payout</Text>
-              <Text style={styles.simValue}>${simulation.potential_payout.toFixed(2)}</Text>
+              <Text style={styles.simLabel}>Vincita Potenziale</Text>
+              <Text style={styles.simValue}>€{simulation.potential_payout.toFixed(2)}</Text>
             </View>
             <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Potential Profit</Text>
+              <Text style={styles.simLabel}>Profitto Potenziale</Text>
               <Text style={[styles.simValue, { color: '#10B981' }]}>
-                +${simulation.potential_profit.toFixed(2)}
+                +€{simulation.potential_profit.toFixed(2)}
               </Text>
             </View>
             <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Win Probability</Text>
+              <Text style={styles.simLabel}>Probabilità Vittoria</Text>
               <Text style={styles.simValue}>{simulation.win_probability.toFixed(1)}%</Text>
             </View>
             <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Expected Value</Text>
+              <Text style={styles.simLabel}>Valore Atteso</Text>
               <Text style={[
                 styles.simValue,
                 { color: simulation.expected_value >= 0 ? '#10B981' : '#EF4444' }
               ]}>
-                {simulation.expected_value >= 0 ? '+' : ''}${simulation.expected_value.toFixed(2)}
+                {simulation.expected_value >= 0 ? '+' : ''}€{simulation.expected_value.toFixed(2)}
               </Text>
             </View>
           </View>
@@ -185,7 +179,7 @@ export default function BetSlip({ match, onClose, onBetPlaced, isLoggedIn }: Bet
               {placing ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.placeText}>Place Bet</Text>
+                <Text style={styles.placeText}>Piazza Scommessa</Text>
               )}
             </TouchableOpacity>
           )}

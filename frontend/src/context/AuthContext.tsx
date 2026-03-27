@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../utils/api';
+import { authAPI, setSessionToken, getSessionToken } from '../utils/api';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -24,14 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('session_token');
+      const token = getSessionToken();
       if (token) {
         const userData = await authAPI.getMe();
         setUser(userData);
       }
     } catch (error) {
       console.log('Auth check failed:', error);
-      await AsyncStorage.removeItem('session_token');
+      setSessionToken(null);
     } finally {
       setLoading(false);
     }

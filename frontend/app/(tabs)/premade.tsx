@@ -13,8 +13,10 @@ export default function PreMadeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBet, setSelectedBet] = useState<PreMadeBet | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchData = async () => {
+    setError('');
     try {
       const [betsData, matchData] = await Promise.all([
         premadeBetsAPI.getAll(),
@@ -22,13 +24,14 @@ export default function PreMadeScreen() {
       ]);
 
       const matchMap: Record<string, Match> = {};
-      matchData.forEach((m: Match) => {
+      (matchData || []).forEach((m: Match) => {
         matchMap[m.match_id] = m;
       });
       setMatches(matchMap);
-      setPremadeBets(betsData);
-    } catch (error) {
-      console.error('Error fetching premade bets:', error);
+      setPremadeBets(betsData || []);
+    } catch (err: any) {
+      console.error('Errore caricamento schedine:', err);
+      setError('Errore nel caricamento');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -58,14 +61,19 @@ export default function PreMadeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Expert Picks</Text>
-        <Text style={styles.subtitle}>Pre-made bet combinations from AI analysis</Text>
+        <Text style={styles.title}>Schedine Pronte</Text>
+        <Text style={styles.subtitle}>Combinazioni selezionate dall'IA</Text>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading expert picks...</Text>
+          <Text style={styles.loadingText}>Caricamento schedine...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
         <ScrollView
@@ -83,26 +91,26 @@ export default function PreMadeScreen() {
           <View style={styles.statsCard}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{premadeBets.length}</Text>
-              <Text style={styles.statLabel}>Available Picks</Text>
+              <Text style={styles.statLabel}>Schedine</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
                 {premadeBets.filter(b => b.confidence >= 65).length}
               </Text>
-              <Text style={styles.statLabel}>High Confidence</Text>
+              <Text style={styles.statLabel}>Alta Affidabilità</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: '#10B981' }]}>
-                ${Math.max(...premadeBets.map(b => b.potential_payout)).toFixed(0)}
+                €{premadeBets.length > 0 ? Math.max(...premadeBets.map(b => b.potential_payout)).toFixed(0) : 0}
               </Text>
-              <Text style={styles.statLabel}>Max Payout</Text>
+              <Text style={styles.statLabel}>Max Vincita</Text>
             </View>
           </View>
 
           {premadeBets.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="star-outline" size={48} color="#6B7280" />
-              <Text style={styles.emptyText}>No expert picks available</Text>
+              <Text style={styles.emptyText}>Nessuna schedina disponibile</Text>
             </View>
           ) : (
             premadeBets.map((bet) => (
@@ -141,18 +149,18 @@ export default function PreMadeScreen() {
 
               <View style={styles.modalStats}>
                 <View style={styles.modalStatItem}>
-                  <Text style={styles.modalStatLabel}>Total Odds</Text>
+                  <Text style={styles.modalStatLabel}>Quota Totale</Text>
                   <Text style={styles.modalStatValue}>{selectedBet.total_odds.toFixed(2)}</Text>
                 </View>
                 <View style={styles.modalStatItem}>
-                  <Text style={styles.modalStatLabel}>Confidence</Text>
+                  <Text style={styles.modalStatLabel}>Affidabilità</Text>
                   <Text style={[styles.modalStatValue, { color: getConfidenceColor(selectedBet.confidence) }]}>
                     {selectedBet.confidence}%
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.matchesTitle}>Included Matches</Text>
+              <Text style={styles.matchesTitle}>Partite Incluse</Text>
               <ScrollView style={styles.matchesList}>
                 {selectedBet.matches.map((matchId, index) => {
                   const match = matches[matchId];
@@ -175,12 +183,12 @@ export default function PreMadeScreen() {
 
               <View style={styles.payoutSection}>
                 <View>
-                  <Text style={styles.payoutLabel}>Recommended Stake</Text>
-                  <Text style={styles.payoutStake}>${selectedBet.stake_recommendation}</Text>
+                  <Text style={styles.payoutLabel}>Puntata Consigliata</Text>
+                  <Text style={styles.payoutStake}>€{selectedBet.stake_recommendation}</Text>
                 </View>
                 <View>
-                  <Text style={styles.payoutLabel}>Potential Payout</Text>
-                  <Text style={styles.payoutValue}>${selectedBet.potential_payout.toFixed(2)}</Text>
+                  <Text style={styles.payoutLabel}>Vincita Potenziale</Text>
+                  <Text style={styles.payoutValue}>€{selectedBet.potential_payout.toFixed(2)}</Text>
                 </View>
               </View>
             </View>
@@ -245,6 +253,16 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#9CA3AF',
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  errorText: {
+    color: '#EF4444',
     fontSize: 14,
   },
   emptyContainer: {

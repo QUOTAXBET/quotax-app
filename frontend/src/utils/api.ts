@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://sharp-edge-6.preview.emergentagent.com';
 
@@ -10,21 +11,65 @@ const api = axios.create({
 });
 
 let sessionToken: string | null = null;
+let tokenLoaded = false;
+
+// Safe async storage wrapper - never crashes
+const safeStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'web') {
+        return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+      }
+      return await AsyncStorage.getItem(key);
+    } catch (e) {
+      console.log('Storage read error (safe):', e);
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+        return;
+      }
+      await AsyncStorage.setItem(key, value);
+    } catch (e) {
+      console.log('Storage write error (safe):', e);
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+        return;
+      }
+      await AsyncStorage.removeItem(key);
+    } catch (e) {
+      console.log('Storage remove error (safe):', e);
+    }
+  },
+};
+
+export const loadToken = async (): Promise<string | null> => {
+  if (tokenLoaded) return sessionToken;
+  const token = await safeStorage.getItem('session_token');
+  sessionToken = token;
+  tokenLoaded = true;
+  return token;
+};
 
 export const setSessionToken = (token: string | null) => {
   sessionToken = token;
-  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-    if (token) localStorage.setItem('session_token', token);
-    else localStorage.removeItem('session_token');
+  tokenLoaded = true;
+  if (token) {
+    safeStorage.setItem('session_token', token);
+  } else {
+    safeStorage.removeItem('session_token');
   }
 };
 
 export const getSessionToken = (): string | null => {
-  if (sessionToken) return sessionToken;
-  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-    return localStorage.getItem('session_token');
-  }
-  return null;
+  return sessionToken;
 };
 
 api.interceptors.request.use((config) => {

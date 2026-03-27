@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI, setSessionToken, getSessionToken } from '../utils/api';
-import { User } from '../types';
+import { authAPI, setSessionToken, loadToken } from '../utils/api';
+
+interface User {
+  user_id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  subscription_tier: string;
+  wallet_balance: number;
+  total_bets: number;
+  total_wins: number;
+  total_profit: number;
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  isPremium: boolean;
   login: (sessionId: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -23,13 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = getSessionToken();
+      const token = await loadToken();
       if (token) {
         const userData = await authAPI.getMe();
         setUser(userData);
       }
     } catch (error) {
-      console.log('Auth check failed:', error);
+      console.log('Auth check failed (safe):', error);
       setSessionToken(null);
     } finally {
       setLoading(false);
@@ -50,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authAPI.logout();
     } catch (error) {
-      console.log('Logout error:', error);
+      console.log('Logout error (safe):', error);
     } finally {
       setUser(null);
     }
@@ -71,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         isAuthenticated: !!user,
+        isPremium: user?.subscription_tier === 'premium' || user?.subscription_tier === 'pro',
         login,
         logout,
         refreshUser,

@@ -24,7 +24,7 @@ const colors = {
 
 export default function PartiteScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { user, isAuthenticated, isPremium, refreshUser } = useAuth();
   const [matches, setMatches] = useState<any[]>([]);
   const [predictions, setPredictions] = useState<Record<string, any>>({});
   const [selectedSport, setSelectedSport] = useState('all');
@@ -174,15 +174,23 @@ export default function PartiteScreen() {
               <Text style={styles.emptyText}>Nessuna partita trovata</Text>
             </View>
           ) : (
-            matches.map((match) => (
-              <MatchCard
-                key={match.match_id}
-                match={match}
-                prediction={predictions[match.match_id]}
-                onPress={() => handleMatchPress(match)}
-                isLocked={!isAuthenticated && Math.random() > 0.3}
-              />
-            ))
+            matches.map((match, index) => {
+              // Tier-based paywall: guests see 70% locked, free users 40% locked, premium sees all
+              const shouldLock = isPremium ? false : 
+                !isAuthenticated ? (index % 10 >= 3) : // guests: 7 of 10 locked
+                (index % 5 >= 3); // free: 2 of 5 locked
+              
+              return (
+                <MatchCard
+                  key={match.match_id}
+                  match={match}
+                  prediction={predictions[match.match_id]}
+                  onPress={() => handleMatchPress(match)}
+                  isLocked={shouldLock}
+                  onUnlock={() => router.push('/subscribe')}
+                />
+              );
+            })
           )}
 
           {/* Upgrade CTA for free users */}

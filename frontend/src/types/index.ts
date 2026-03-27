@@ -3,6 +3,8 @@ export interface User {
   email: string;
   name: string;
   picture?: string;
+  subscription_tier: 'free' | 'base' | 'pro' | 'premium';
+  subscription_expires?: string;
   wallet_balance: number;
   total_bets: number;
   total_wins: number;
@@ -11,67 +13,94 @@ export interface User {
 }
 
 export interface Match {
-  match_id: string;
-  sport: 'soccer' | 'nba' | 'ufc';
+  sport: string;
   league: string;
-  home_team: string;
-  away_team: string;
-  home_logo?: string;
-  away_logo?: string;
-  match_date: string;
-  status: 'upcoming' | 'live' | 'finished';
-  home_score?: number;
-  away_score?: number;
+  home: string;
+  away: string;
+  bet_type: string;
+  odds: number;
+  match_time: string;
+}
+
+export interface Schedina {
+  schedina_id: string;
+  matches: Match[];
+  total_odds: number;
+  stake: number;
+  potential_win: number;
+  actual_win: number;
+  status: 'pending' | 'won' | 'lost';
+  is_premium: boolean;
+  is_locked?: boolean;
+  is_blurred?: boolean;
+  confidence: number;
+  ai_analysis?: string;
+  created_at: string;
+  viewers: number;
+}
+
+export interface LiveMatch {
+  match_id: string;
+  sport: string;
+  league: string;
+  home: string;
+  away: string;
+  score: string;
+  minute: string | number;
   odds_home: number;
   odds_draw?: number;
   odds_away: number;
+  odds_trend?: 'up' | 'down' | 'stable';
+  is_hot: boolean;
+  alert?: string;
 }
 
-export interface Prediction {
+export interface AIPrediction {
   prediction_id: string;
-  match_id: string;
   sport: string;
-  predicted_outcome: 'home' | 'draw' | 'away';
+  league: string;
+  home: string;
+  away: string;
+  predicted_outcome: string;
   confidence: number;
-  reasoning: string;
+  probability: number;
+  value_rating: number;
+  is_value_bet: boolean;
+  analysis: string;
   odds: number;
-  expected_value: number;
-  risk_level: 'low' | 'medium' | 'high';
+  match_time: string;
 }
 
-export interface Bet {
-  bet_id: string;
-  user_id: string;
-  match_id: string;
-  sport: string;
-  bet_type: string;
-  stake: number;
-  odds: number;
-  potential_payout: number;
-  status: 'pending' | 'won' | 'lost';
-  actual_payout: number;
-  created_at: string;
-  settled_at?: string;
-}
-
-export interface PreMadeBet {
-  premade_id: string;
+export interface SubscriptionPlan {
+  id: string;
   name: string;
-  description: string;
-  sport: string;
-  matches: string[];
-  total_odds: number;
-  confidence: number;
-  stake_recommendation: number;
-  potential_payout: number;
+  price: number;
+  period: string;
+  features: string[];
+  highlighted: boolean;
+  badge?: string;
 }
 
-export interface SimulationResult {
-  stake: number;
-  odds: number;
-  potential_payout: number;
-  potential_profit: number;
-  win_probability: number;
-  expected_value: number;
-  match: Match;
+export interface PlatformStats {
+  roi_7d: number;
+  roi_30d?: number;
+  win_rate: number;
+  total_bets: number;
+  total_wins: number;
+  streak: number;
+  bankroll_history: { date: string; value: number }[];
+  last_win: { amount: number; time: string };
+  active_users: number;
+}
+
+export interface SocialActivity {
+  activities: {
+    type: 'win' | 'subscribe';
+    user: string;
+    amount?: number;
+    plan?: string;
+    time: string;
+  }[];
+  viewing_now: number;
+  subscribed_today: number;
 }

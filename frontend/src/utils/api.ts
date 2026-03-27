@@ -1,28 +1,21 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
-// URL backend
 const API_URL = 'https://sharp-edge-6.preview.emergentagent.com';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });
 
-// Token storage per piattaforma
 let sessionToken: string | null = null;
 
 export const setSessionToken = (token: string | null) => {
   sessionToken = token;
   if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-    if (token) {
-      localStorage.setItem('session_token', token);
-    } else {
-      localStorage.removeItem('session_token');
-    }
+    if (token) localStorage.setItem('session_token', token);
+    else localStorage.removeItem('session_token');
   }
 };
 
@@ -34,113 +27,59 @@ export const getSessionToken = (): string | null => {
   return null;
 };
 
-// Interceptor per token
 api.interceptors.request.use((config) => {
   const token = getSessionToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
+// Auth
 export const authAPI = {
   createSession: async (sessionId: string) => {
     const response = await api.post('/auth/session', { session_id: sessionId });
-    if (response.data.session_token) {
-      setSessionToken(response.data.session_token);
-    }
+    if (response.data.session_token) setSessionToken(response.data.session_token);
     return response.data;
   },
-  getMe: async () => {
-    const response = await api.get('/auth/me');
-    return response.data;
-  },
-  logout: async () => {
-    await api.post('/auth/logout');
-    setSessionToken(null);
-  },
+  getMe: async () => (await api.get('/auth/me')).data,
+  logout: async () => { await api.post('/auth/logout'); setSessionToken(null); },
 };
 
-export const matchesAPI = {
-  getAll: async () => {
-    const response = await api.get('/matches');
-    return response.data;
-  },
-  getBySport: async (sport: string) => {
-    const response = await api.get(`/matches/${sport}`);
-    return response.data;
-  },
-  getById: async (matchId: string) => {
-    const response = await api.get(`/match/${matchId}`);
-    return response.data;
-  },
+// Public (for guests)
+export const publicAPI = {
+  getStats: async () => (await api.get('/public/stats')).data,
+  getPreviewSchedule: async () => (await api.get('/public/preview-schedine')).data,
+  getBankrollPreview: async () => (await api.get('/public/bankroll-preview')).data,
 };
 
-export const predictionsAPI = {
-  getAll: async () => {
-    const response = await api.get('/predictions');
-    return response.data;
-  },
-  getBySport: async (sport: string) => {
-    const response = await api.get(`/predictions/${sport}`);
-    return response.data;
-  },
-  getByMatch: async (matchId: string) => {
-    const response = await api.get(`/prediction/${matchId}`);
-    return response.data;
-  },
+// Schedine
+export const schedineAPI = {
+  getAll: async () => (await api.get('/schedine')).data,
 };
 
-export const betsAPI = {
-  place: async (matchId: string, betType: string, stake: number) => {
-    const response = await api.post('/bets', { match_id: matchId, bet_type: betType, stake });
-    return response.data;
-  },
-  simulate: async (matchId: string, betType: string, stake: number) => {
-    const response = await api.post('/bets/simulate', { match_id: matchId, bet_type: betType, stake });
-    return response.data;
-  },
-  getHistory: async () => {
-    const response = await api.get('/bets/history');
-    return response.data;
-  },
-  settle: async (betId: string, won: boolean) => {
-    const response = await api.post(`/bets/${betId}/settle`, null, { params: { won } });
-    return response.data;
-  },
+// Dashboard
+export const dashboardAPI = {
+  getStats: async () => (await api.get('/dashboard/stats')).data,
 };
 
-export const premadeBetsAPI = {
-  getAll: async () => {
-    const response = await api.get('/premade-bets');
-    return response.data;
-  },
-  getBySport: async (sport: string) => {
-    const response = await api.get(`/premade-bets/${sport}`);
-    return response.data;
-  },
+// Live
+export const liveAPI = {
+  getMatches: async () => (await api.get('/live')).data,
 };
 
-export const userAPI = {
-  getWallet: async () => {
-    const response = await api.get('/user/wallet');
-    return response.data;
-  },
-  resetWallet: async () => {
-    const response = await api.post('/user/wallet/reset');
-    return response.data;
-  },
+// AI
+export const aiAPI = {
+  getPredictions: async () => (await api.get('/ai/predictions')).data,
 };
 
-export const dataAPI = {
-  refresh: async () => {
-    const response = await api.post('/refresh-data');
-    return response.data;
-  },
-  getStats: async () => {
-    const response = await api.get('/stats/overview');
-    return response.data;
-  },
+// Subscription
+export const subscriptionAPI = {
+  getPlans: async () => (await api.get('/subscription/plans')).data,
+  subscribe: async (planId: string) => (await api.post('/subscription/subscribe', { plan_id: planId })).data,
+};
+
+// Social
+export const socialAPI = {
+  getActivity: async () => (await api.get('/social/activity')).data,
 };
 
 export default api;

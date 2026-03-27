@@ -1,119 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../src/context/AuthContext';
-import WalletCard from '../../src/components/WalletCard';
-import { betsAPI, userAPI, dataAPI } from '../../src/utils/api';
-import { Bet } from '../../src/types';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
+import { colors } from '../../src/utils/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, logout, refreshUser } = useAuth();
-  const [bets, setBets] = useState<Bet[]>([]);
-  const [wallet, setWallet] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [resetting, setResetting] = useState(false);
-
-  const fetchData = async () => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const [betsData, walletData] = await Promise.all([
-        betsAPI.getHistory(),
-        userAPI.getWallet(),
-      ]);
-      setBets(betsData || []);
-      setWallet(walletData);
-    } catch (error) {
-      console.error('Errore caricamento profilo:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [isAuthenticated]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
+  const { user, isAuthenticated, logout } = useAuth();
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/');
+    Alert.alert('Logout', 'Sei sicuro di voler uscire?', [
+      { text: 'Annulla', style: 'cancel' },
+      { text: 'Esci', style: 'destructive', onPress: async () => { await logout(); router.replace('/'); } }
+    ]);
   };
 
-  const handleResetWallet = async () => {
-    Alert.alert(
-      'Reimposta Portafoglio',
-      'Questo resettera il saldo a €1000 e cancellerà lo storico scommesse. Continuare?',
-      [
-        { text: 'Annulla', style: 'cancel' },
-        {
-          text: 'Reimposta',
-          style: 'destructive',
-          onPress: async () => {
-            setResetting(true);
-            try {
-              await userAPI.resetWallet();
-              await refreshUser();
-              await fetchData();
-            } catch (error) {
-              console.error('Reset fallito:', error);
-            } finally {
-              setResetting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleRefreshData = async () => {
-    try {
-      await dataAPI.refresh();
-      Alert.alert('Successo', 'Dati partite aggiornati!');
-    } catch (error) {
-      console.error('Aggiornamento fallito:', error);
-    }
-  };
-
-  const settleBet = async (betId: string, won: boolean) => {
-    try {
-      await betsAPI.settle(betId, won);
-      await refreshUser();
-      await fetchData();
-    } catch (error: any) {
-      Alert.alert('Errore', error.response?.data?.detail || 'Impossibile chiudere la scommessa');
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'IN ATTESA';
-      case 'won': return 'VINTA';
-      case 'lost': return 'PERSA';
-      default: return status.toUpperCase();
-    }
-  };
-
-  const getBetTypeLabel = (type: string) => {
-    switch (type) {
-      case 'home': return 'Casa';
-      case 'away': return 'Ospite';
-      case 'draw': return 'Pareggio';
-      default: return type;
+  const getTierBadge = () => {
+    switch (user?.subscription_tier) {
+      case 'premium': return { label: 'PREMIUM', color: colors.gold };
+      case 'pro': return { label: 'PRO', color: colors.primary };
+      case 'base': return { label: 'BASE', color: colors.textSecondary };
+      default: return { label: 'FREE', color: colors.textMuted };
     }
   };
 
@@ -124,362 +34,148 @@ export default function ProfileScreen() {
           <Text style={styles.title}>Profilo</Text>
         </View>
         <View style={styles.guestContainer}>
-          <Ionicons name="person-circle-outline" size={80} color="#6B7280" />
+          <Ionicons name="person-circle-outline" size={80} color={colors.textMuted} />
           <Text style={styles.guestTitle}>Modalità Ospite</Text>
-          <Text style={styles.guestText}>
-            Accedi per tracciare le tue scommesse, gestire il portafoglio virtuale e salvare i tuoi progressi.
-          </Text>
-          <TouchableOpacity style={styles.loginButton} onPress={() => router.replace('/')}>
-            <Ionicons name="logo-google" size={20} color="#fff" />
-            <Text style={styles.loginButtonText}>Accedi con Google</Text>
+          <Text style={styles.guestSubtitle}>Accedi per salvare i tuoi progressi e sbloccare tutte le funzionalità</Text>
+          <TouchableOpacity style={styles.loginCta} onPress={() => router.push('/login')}>
+            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.loginGradient}>
+              <Ionicons name="logo-google" size={20} color={colors.background} />
+              <Text style={styles.loginCtaText}>Accedi con Google</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  const tier = getTierBadge();
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Profilo</Text>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+        <TouchableOpacity onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color={colors.loss} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#6366F1"
-          />
-        }
-      >
-        <View style={styles.userSection}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* User Card */}
+        <View style={styles.userCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </Text>
+            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
+          <View style={[styles.tierBadge, { backgroundColor: tier.color }]}>
+            <Text style={styles.tierBadgeText}>{tier.label}</Text>
+          </View>
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 40 }} />
-        ) : (
-          <>
-            {wallet && (
-              <WalletCard
-                balance={wallet.balance}
-                totalBets={wallet.total_bets}
-                totalWins={wallet.total_wins}
-                totalProfit={wallet.total_profit}
-              />
-            )}
-
-            <View style={styles.actionsSection}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleResetWallet}
-                disabled={resetting}
-              >
-                {resetting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="refresh-circle" size={20} color="#fff" />
-                    <Text style={styles.actionText}>Reimposta</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleRefreshData}>
-                <Ionicons name="sync" size={20} color="#fff" />
-                <Text style={styles.actionText}>Aggiorna Partite</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.betsSection}>
-              <Text style={styles.sectionTitle}>Storico Scommesse</Text>
-              
-              {bets.length === 0 ? (
-                <View style={styles.emptyBets}>
-                  <Ionicons name="receipt-outline" size={32} color="#6B7280" />
-                  <Text style={styles.emptyText}>Nessuna scommessa piazzata</Text>
-                </View>
-              ) : (
-                bets.map((bet) => (
-                  <View key={bet.bet_id} style={styles.betCard}>
-                    <View style={styles.betHeader}>
-                      <View style={styles.sportBadge}>
-                        <Text style={styles.sportText}>
-                          {bet.sport === 'soccer' ? 'CALCIO' : bet.sport.toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={[
-                        styles.statusBadge,
-                        { backgroundColor: bet.status === 'won' ? '#10B981' : bet.status === 'lost' ? '#EF4444' : '#F59E0B' }
-                      ]}>
-                        <Text style={styles.statusText}>{getStatusLabel(bet.status)}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.betDetails}>
-                      <View style={styles.betRow}>
-                        <Text style={styles.betLabel}>Tipo Scommessa</Text>
-                        <Text style={styles.betValue}>{getBetTypeLabel(bet.bet_type)}</Text>
-                      </View>
-                      <View style={styles.betRow}>
-                        <Text style={styles.betLabel}>Puntata</Text>
-                        <Text style={styles.betValue}>€{bet.stake.toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.betRow}>
-                        <Text style={styles.betLabel}>Quota</Text>
-                        <Text style={styles.betValue}>{bet.odds.toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.betRow}>
-                        <Text style={styles.betLabel}>
-                          {bet.status === 'pending' ? 'Vincita Potenziale' : 'Vincita Effettiva'}
-                        </Text>
-                        <Text style={[
-                          styles.betValue,
-                          { color: bet.status === 'won' ? '#10B981' : bet.status === 'lost' ? '#EF4444' : '#fff' }
-                        ]}>
-                          €{bet.status === 'pending' ? bet.potential_payout.toFixed(2) : bet.actual_payout.toFixed(2)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {bet.status === 'pending' && (
-                      <View style={styles.settleButtons}>
-                        <TouchableOpacity
-                          style={[styles.settleButton, styles.winButton]}
-                          onPress={() => settleBet(bet.bet_id, true)}
-                        >
-                          <Text style={styles.settleText}>Segna Vinta</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.settleButton, styles.loseButton]}
-                          onPress={() => settleBet(bet.bet_id, false)}
-                        >
-                          <Text style={styles.settleText}>Segna Persa</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-
-                    <Text style={styles.betDate}>
-                      {format(new Date(bet.created_at), 'd MMM yyyy HH:mm', { locale: it })}
-                    </Text>
-                  </View>
-                ))
+        {/* Subscription Status */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Abbonamento</Text>
+          <View style={styles.subscriptionCard}>
+            <View style={styles.subscriptionInfo}>
+              <Text style={styles.subscriptionPlan}>Piano {tier.label}</Text>
+              {user?.subscription_expires && (
+                <Text style={styles.subscriptionExpiry}>
+                  Scade il {new Date(user.subscription_expires).toLocaleDateString('it-IT')}
+                </Text>
               )}
             </View>
-          </>
-        )}
+            {user?.subscription_tier === 'free' ? (
+              <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/subscribe')}>
+                <Text style={styles.upgradeBtnText}>Upgrade</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.manageBtn}>
+                <Text style={styles.manageBtnText}>Gestisci</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Statistiche</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>€{user?.wallet_balance?.toFixed(0) || 1000}</Text>
+              <Text style={styles.statLabel}>Saldo Virtuale</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{user?.total_bets || 0}</Text>
+              <Text style={styles.statLabel}>Scommesse</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{user?.total_wins || 0}</Text>
+              <Text style={styles.statLabel}>Vinte</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statValue, { color: (user?.total_profit || 0) >= 0 ? colors.primary : colors.loss }]}>
+                {(user?.total_profit || 0) >= 0 ? '+' : ''}€{user?.total_profit?.toFixed(0) || 0}
+              </Text>
+              <Text style={styles.statLabel}>Profitto</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Menu */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+            <Text style={styles.menuText}>Notifiche</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="help-circle-outline" size={22} color={colors.textPrimary} />
+            <Text style={styles.menuText}>Assistenza</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="document-text-outline" size={22} color={colors.textPrimary} />
+            <Text style={styles.menuText}>Termini e Condizioni</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  logoutButton: {
-    padding: 8,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  userSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  userName: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  userEmail: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  actionsSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#374151',
-    padding: 14,
-    borderRadius: 12,
-  },
-  actionText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  betsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  emptyBets: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 12,
-  },
-  emptyText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  betCard: {
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  betHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sportBadge: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  sportText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  betDetails: {
-    gap: 8,
-  },
-  betRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  betLabel: {
-    color: '#6B7280',
-    fontSize: 13,
-  },
-  betValue: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  settleButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  settleButton: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  winButton: {
-    backgroundColor: '#10B981',
-  },
-  loseButton: {
-    backgroundColor: '#EF4444',
-  },
-  settleText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  betDate: {
-    color: '#6B7280',
-    fontSize: 11,
-    marginTop: 12,
-  },
-  guestContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 16,
-  },
-  guestTitle: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  guestText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#4285F4',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
+  title: { fontSize: 28, fontWeight: '800', color: colors.textPrimary },
+  guestContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  guestTitle: { color: colors.textPrimary, fontSize: 24, fontWeight: '700', marginTop: 20 },
+  guestSubtitle: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  loginCta: { marginTop: 24, borderRadius: 16, overflow: 'hidden' },
+  loginGradient: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 32, paddingVertical: 16 },
+  loginCtaText: { color: colors.background, fontSize: 16, fontWeight: '700' },
+  scrollContent: { padding: 20 },
+  userCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, alignItems: 'center', marginBottom: 24 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  avatarText: { color: colors.background, fontSize: 32, fontWeight: '800' },
+  userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '700' },
+  userEmail: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
+  tierBadge: { marginTop: 12, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 12 },
+  tierBadgeText: { color: colors.background, fontSize: 12, fontWeight: '700' },
+  section: { marginBottom: 24 },
+  sectionTitle: { color: colors.textSecondary, fontSize: 13, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  subscriptionCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  subscriptionInfo: {},
+  subscriptionPlan: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  subscriptionExpiry: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
+  upgradeBtn: { backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  upgradeBtnText: { color: colors.background, fontWeight: '700' },
+  manageBtn: { backgroundColor: colors.secondary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  manageBtnText: { color: colors.textPrimary, fontWeight: '600' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  statCard: { flex: 1, minWidth: '45%', backgroundColor: colors.card, borderRadius: 16, padding: 16, alignItems: 'center' },
+  statValue: { color: colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  statLabel: { color: colors.textSecondary, fontSize: 11, marginTop: 4 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, padding: 16, borderRadius: 12, marginBottom: 8, gap: 12 },
+  menuText: { flex: 1, color: colors.textPrimary, fontSize: 15 },
 });

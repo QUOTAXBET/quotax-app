@@ -13,12 +13,14 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0F172A' },
-            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: '#0B0F14' },
+            animation: 'fade',
           }}
         >
           <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="subscribe" options={{ presentation: 'modal' }} />
         </Stack>
       </AuthProvider>
     </GestureHandlerRootView>
@@ -26,7 +28,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 });

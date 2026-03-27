@@ -1,237 +1,217 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import MatchCard from '../../src/components/MatchCard';
-import SportFilter from '../../src/components/SportFilter';
-import BetSlip from '../../src/components/BetSlip';
-import { matchesAPI, predictionsAPI } from '../../src/utils/api';
-import { Match, Prediction } from '../../src/types';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../src/context/AuthContext';
+import { dashboardAPI, publicAPI, socialAPI } from '../../src/utils/api';
+import { colors } from '../../src/utils/theme';
 
-export default function MatchesScreen() {
-  const { isAuthenticated, refreshUser } = useAuth();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [predictions, setPredictions] = useState<Record<string, Prediction>>({});
-  const [selectedSport, setSelectedSport] = useState('all');
+export default function DashboardScreen() {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [social, setSocial] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [showBetSlip, setShowBetSlip] = useState(false);
-  const [error, setError] = useState('');
 
   const fetchData = async () => {
-    setError('');
     try {
-      const [matchData, predData] = await Promise.all([
-        selectedSport === 'all' 
-          ? matchesAPI.getAll() 
-          : matchesAPI.getBySport(selectedSport),
-        selectedSport === 'all'
-          ? predictionsAPI.getAll()
-          : predictionsAPI.getBySport(selectedSport),
-      ]);
-
-      setMatches(matchData || []);
-      
-      const predMap: Record<string, Prediction> = {};
-      (predData || []).forEach((p: Prediction) => {
-        predMap[p.match_id] = p;
-      });
-      setPredictions(predMap);
-    } catch (err: any) {
-      console.error('Errore caricamento dati:', err);
-      setError('Errore nel caricamento. Tira giù per aggiornare.');
+      if (isAuthenticated) {
+        const [statsData, socialData] = await Promise.all([
+          dashboardAPI.getStats(),
+          socialAPI.getActivity(),
+        ]);
+        setStats(statsData);
+        setSocial(socialData);
+      } else {
+        const [statsData, socialData] = await Promise.all([
+          publicAPI.getStats(),
+          socialAPI.getActivity(),
+        ]);
+        setStats(statsData);
+        setSocial(socialData);
+      }
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    setLoading(true);
-    fetchData();
-  }, [selectedSport]);
+  useEffect(() => { fetchData(); }, [isAuthenticated]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData();
-  }, [selectedSport]);
+  }, [isAuthenticated]);
 
-  const handleMatchPress = (match: Match) => {
-    setSelectedMatch(match);
-    setShowBetSlip(true);
-  };
-
-  const handleBetPlaced = () => {
-    if (isAuthenticated) {
-      refreshUser();
-    }
-  };
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Partite</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={22} color="#6366F1" />
-        </TouchableOpacity>
-      </View>
-
-      <SportFilter selected={selectedSport} onSelect={setSelectedSport} />
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Caricamento partite...</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Ciao{user ? `, ${user.name.split(' ')[0]}` : ''} 👋</Text>
+            <Text style={styles.subtitle}>Ecco le tue performance</Text>
+          </View>
+          {!isAuthenticated && (
+            <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
+              <Text style={styles.loginBtnText}>Accedi</Text>
+            </TouchableOpacity>
+          )}
         </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={48} color="#EF4444" />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryText}>Riprova</Text>
+
+        {/* Main Stats */}
+        <View style={styles.mainStats}>
+          <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.roiCard}>
+            <Text style={styles.roiLabel}>ROI 7 Giorni</Text>
+            <Text style={styles.roiValue}>+{stats?.roi_7d || 0}%</Text>
+            <View style={styles.roiTrend}>
+              <Ionicons name="trending-up" size={16} color={colors.background} />
+              <Text style={styles.roiTrendText}>In crescita</Text>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats?.win_rate || 0}%</Text>
+              <Text style={styles.statLabel}>Win Rate</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats?.total_bets || 0}</Text>
+              <Text style={styles.statLabel}>Giocate</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats?.streak || 0}</Text>
+              <Text style={styles.statLabel}>Serie</Text>
+            </View>
+            {isAuthenticated && stats?.roi_30d ? (
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: colors.primary }]}>+{stats.roi_30d}%</Text>
+                <Text style={styles.statLabel}>ROI 30gg</Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={[styles.statCard, styles.lockedCard]} onPress={() => router.push('/subscribe')}>
+                <Ionicons name="lock-closed" size={20} color={colors.gold} />
+                <Text style={styles.lockedText}>Premium</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Activity Feed */}
+        {social && (
+          <View style={styles.activitySection}>
+            <Text style={styles.sectionTitle}>Attività Recente</Text>
+            {social.activities.slice(0, 3).map((act: any, idx: number) => (
+              <View key={idx} style={styles.activityItem}>
+                <View style={[styles.activityIcon, act.type === 'win' ? styles.activityWin : styles.activitySub]}>
+                  <Ionicons name={act.type === 'win' ? 'cash' : 'star'} size={16} color={colors.background} />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityText}>
+                    {act.type === 'win' 
+                      ? <><Text style={styles.activityUser}>{act.user}</Text> ha vinto <Text style={styles.activityAmount}>+€{act.amount}</Text></>
+                      : <><Text style={styles.activityUser}>{act.user}</Text> si è abbonato a <Text style={styles.activityPlan}>{act.plan}</Text></>
+                    }
+                  </Text>
+                  <Text style={styles.activityTime}>{act.time}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Upgrade CTA for free users */}
+        {(!isAuthenticated || user?.subscription_tier === 'free') && (
+          <TouchableOpacity style={styles.upgradeBanner} onPress={() => router.push('/subscribe')}>
+            <LinearGradient colors={[colors.gold, colors.goldDark]} style={styles.upgradeGradient}>
+              <View style={styles.upgradeContent}>
+                <Ionicons name="diamond" size={24} color={colors.background} />
+                <View style={styles.upgradeText}>
+                  <Text style={styles.upgradeTitle}>Passa a Premium</Text>
+                  <Text style={styles.upgradeSubtitle}>Sblocca tutte le schedine e AI</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={colors.background} />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/schedine')}>
+            <Ionicons name="receipt" size={24} color={colors.primary} />
+            <Text style={styles.quickActionText}>Schedine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/live')}>
+            <Ionicons name="pulse" size={24} color={colors.loss} />
+            <Text style={styles.quickActionText}>Live</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/ai')}>
+            <Ionicons name="sparkles" size={24} color={colors.gold} />
+            <Text style={styles.quickActionText}>AI</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#6366F1"
-              colors={['#6366F1']}
-            />
-          }
-        >
-          {matches.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={48} color="#6B7280" />
-              <Text style={styles.emptyText}>Nessuna partita trovata</Text>
-              <Text style={styles.emptySubtext}>Tira giù per aggiornare</Text>
-            </View>
-          ) : (
-            matches.map((match) => (
-              <MatchCard
-                key={match.match_id}
-                match={match}
-                prediction={predictions[match.match_id]}
-                onPress={() => handleMatchPress(match)}
-              />
-            ))
-          )}
-        </ScrollView>
-      )}
 
-      <Modal
-        visible={showBetSlip}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowBetSlip(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
-            onPress={() => setShowBetSlip(false)}
-            activeOpacity={1}
-          />
-          {selectedMatch && (
-            <BetSlip
-              match={selectedMatch}
-              onClose={() => setShowBetSlip(false)}
-              onBetPlaced={handleBetPlaced}
-              isLoggedIn={isAuthenticated}
-            />
-          )}
-        </View>
-      </Modal>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  refreshButton: {
-    padding: 8,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingTop: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 20,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyText: {
-    color: '#9CA3AF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
+  greeting: { fontSize: 24, fontWeight: '800', color: colors.textPrimary },
+  subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+  loginBtn: { backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  loginBtnText: { color: colors.background, fontWeight: '700' },
+  mainStats: { paddingHorizontal: 20 },
+  roiCard: { borderRadius: 20, padding: 24, marginBottom: 16 },
+  roiLabel: { color: 'rgba(11, 15, 20, 0.7)', fontSize: 14, marginBottom: 4 },
+  roiValue: { color: colors.background, fontSize: 48, fontWeight: '800' },
+  roiTrend: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
+  roiTrendText: { color: colors.background, fontSize: 13 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  statCard: { flex: 1, minWidth: '45%', backgroundColor: colors.card, borderRadius: 16, padding: 16, alignItems: 'center' },
+  statValue: { fontSize: 24, fontWeight: '800', color: colors.textPrimary },
+  statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
+  lockedCard: { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderWidth: 1, borderColor: colors.gold },
+  lockedText: { fontSize: 11, color: colors.gold, marginTop: 4 },
+  activitySection: { padding: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 16 },
+  activityItem: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  activityIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  activityWin: { backgroundColor: colors.primary },
+  activitySub: { backgroundColor: colors.gold },
+  activityContent: { flex: 1 },
+  activityText: { color: colors.textPrimary, fontSize: 14 },
+  activityUser: { fontWeight: '600' },
+  activityAmount: { color: colors.primary, fontWeight: '700' },
+  activityPlan: { color: colors.gold, fontWeight: '600' },
+  activityTime: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  upgradeBanner: { marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
+  upgradeGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+  upgradeContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  upgradeText: {},
+  upgradeTitle: { color: colors.background, fontSize: 16, fontWeight: '700' },
+  upgradeSubtitle: { color: 'rgba(11, 15, 20, 0.7)', fontSize: 12 },
+  quickActions: { flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 24 },
+  quickAction: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 },
+  quickActionText: { color: colors.textSecondary, fontSize: 12 },
 });

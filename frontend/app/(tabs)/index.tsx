@@ -121,7 +121,12 @@ export default function PartiteScreen() {
               <View key={match.match_id} style={s.card}>
                 <View style={s.cardHeader}>
                   <View style={s.sportBadge}><Ionicons name={getSportIcon(match.sport) as any} size={13} color={colors.background} /><Text style={s.sportText}>{getSportLabel(match.sport)}</Text></View>
-                  <Text style={s.league}>{match.league}</Text>
+                  <View style={s.cardHeaderRight}>
+                    {pred && !shouldLock && pred.confidence > 75 && (
+                      <View style={s.aiBadge}><Text style={s.aiBadgeText}>AI ✓</Text></View>
+                    )}
+                    <Text style={s.league}>{match.league}</Text>
+                  </View>
                 </View>
 
                 <View style={s.teams}>
@@ -281,6 +286,9 @@ const s = StyleSheet.create({
   // Card
   card: { backgroundColor: colors.card, borderRadius: 18, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  cardHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  aiBadge: { backgroundColor: 'rgba(0,255,136,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,255,136,0.4)' },
+  aiBadgeText: { color: colors.primary, fontSize: 10, fontWeight: '800' },
   sportBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, gap: 4 },
   sportText: { color: colors.background, fontSize: 10, fontWeight: '700' },
   league: { color: colors.textSecondary, fontSize: 11 },

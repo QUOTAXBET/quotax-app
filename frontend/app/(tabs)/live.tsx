@@ -218,15 +218,21 @@ export default function OpportunitaScreen() {
                         <View style={[styles.probFill, { width: `${opp.confidence}%`, backgroundColor: getRiskColor(opp.risk_level) }]} />
                       </View>
                     </View>
+
+                    {/* Edge always visible */}
+                    <View style={styles.edgeRow}>
+                      <Text style={styles.edgeLabel}>Edge sul mercato:</Text>
+                      <Text style={styles.edgeValue}>+{opp.edge_percentage}%</Text>
+                    </View>
                   </View>
 
-                  {/* Locked explanation */}
+                  {/* Locked explanation only */}
                   <Animated.View style={[styles.lockedExplanation, { transform: [{ scale: pulseAnim }] }]}>
                     <TouchableOpacity style={styles.lockedCTA} onPress={() => router.push('/subscribe')} activeOpacity={0.8}>
                       <Ionicons name="lock-closed" size={16} color={colors.gold} />
                       <View style={styles.lockedCTATextWrap}>
-                        <Text style={styles.lockedCTATitle}>Analisi completa bloccata</Text>
-                        <Text style={styles.lockedCTASub}>Passa a Premium per l'analisi dettagliata</Text>
+                        <Text style={styles.lockedCTATitle}>Analisi completa — Solo Premium</Text>
+                        <Text style={styles.lockedCTASub}>Sblocca la spiegazione AI dettagliata</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={colors.gold} />
                     </TouchableOpacity>

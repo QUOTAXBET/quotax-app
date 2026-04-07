@@ -614,6 +614,48 @@ async def get_social_activity():
         "subscribed_today": random.randint(12, 45),
     }
 
+@api_router.post("/schedine/follow")
+async def follow_schedina(request: Request, user: User = Depends(require_user)):
+    """Follow/track a schedina"""
+    body = await request.json()
+    schedina_id = body.get("schedina_id")
+    if not schedina_id:
+        raise HTTPException(status_code=400, detail="schedina_id richiesto")
+    
+    existing = await db.followed_schedine.find_one({"user_id": user.user_id, "schedina_id": schedina_id})
+    if existing:
+        await db.followed_schedine.delete_one({"_id": existing["_id"]})
+        return {"followed": False}
+    
+    await db.followed_schedine.insert_one({
+        "user_id": user.user_id,
+        "schedina_id": schedina_id,
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"followed": True}
+
+
+@api_router.get("/schedine/followed")
+async def get_followed_schedine(user: User = Depends(require_user)):
+    """Get user's followed schedine stats"""
+    followed = await db.followed_schedine.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    followed_ids = [f["schedina_id"] for f in followed]
+    
+    # Mock stats based on followed count
+    total_followed = len(followed_ids)
+    wins = max(0, int(total_followed * 0.65))
+    roi = round(random.uniform(8.0, 28.0), 1) if total_followed > 0 else 0.0
+    streak = random.randint(0, min(wins, 5)) if wins > 0 else 0
+    
+    return {
+        "followed_count": total_followed,
+        "wins": wins,
+        "roi_personal": roi,
+        "streak": streak,
+        "followed_ids": followed_ids,
+    }
+
+
 # ==================== MATCHES ENDPOINTS ====================
 
 def generate_matches(sport_filter: str = "all") -> List[Dict]:

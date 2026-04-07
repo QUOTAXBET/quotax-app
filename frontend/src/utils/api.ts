@@ -108,6 +108,8 @@ export const publicAPI = {
 // Schedine
 export const schedineAPI = {
   getAll: async () => (await api.get('/schedine')).data,
+  follow: async (schedinaId: string) => (await api.post('/schedine/follow', { schedina_id: schedinaId })).data,
+  getFollowed: async () => (await api.get('/schedine/followed')).data,
 };
 
 // Live

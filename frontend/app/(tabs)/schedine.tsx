@@ -38,7 +38,7 @@ export default function SchedineAIScreen() {
 
   const getLockText = (): string => {
     if (userTier === 'guest') return 'Registrati gratis per sbloccare';
-    return 'Passa a Premium';
+    return 'Passa a Premium per sbloccare tutte le schedine AI';
   };
 
   const getLockAction = () => {

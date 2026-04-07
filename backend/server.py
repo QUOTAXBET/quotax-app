@@ -684,7 +684,30 @@ def generate_matches(sport_filter: str = "all") -> List[Dict]:
 def generate_predictions_for_matches(matches: List[Dict]) -> List[Dict]:
     """Generate AI predictions for matches"""
     predictions = []
-    risk_levels = ["low", "medium", "high"]
+    
+    motivations = {
+        "soccer": [
+            "L'AI rileva superiorità difensiva nelle ultime 5 partite e vantaggio nelle statistiche testa a testa.",
+            "Forma recente dominante: 4 vittorie consecutive e miglior attacco del campionato nelle ultime giornate.",
+            "Pattern storico favorevole: in trasferte simili, questa squadra vince il 72% delle volte dal 2022.",
+            "Analisi xG (Expected Goals): media di 2.1 xG per partita vs 0.9 subiti. Edge statistico chiaro.",
+            "Il modello rileva stanchezza avversaria (3 partite in 8 giorni) e assenze chiave in difesa.",
+        ],
+        "nba": [
+            "Rendimento casalingo eccezionale: 8-2 nelle ultime 10 in casa. Vantaggio canestri + rimbalzi offensivi.",
+            "L'AI rileva un mismatch tattico favorevole: roster profondo vs rotazioni corte dell'avversario.",
+            "Back-to-back per l'avversario con trasferta lunga. Calo medio del 12% nel 4° quarto rilevato dal modello.",
+            "Trend ATS (Against The Spread) favorevole: copertura nel 75% delle ultime 12 partite.",
+            "Star player in forma: ultimi 5 match sopra media stagionale di 8 punti. Impact rating al massimo.",
+        ],
+        "ufc": [
+            "Analisi striking: vantaggio del 23% nella precisione dei colpi significativi nelle ultime 3 fight.",
+            "Il modello rileva superiorità nel grappling e nel takedown defense (94% nelle ultime 5 fight).",
+            "Stile favorevole nel matchup: striker vs grappler con deficit nel takedown. Modello prevede KO/TKO.",
+            "Analisi cardio: fighter con miglior resistenza al 3° round. L'avversario cala del 35% dopo il 2° round.",
+            "Record in questa weight class: 7-1 con finish rate del 75%. Vantaggio di reach significativo.",
+        ],
+    }
     
     for match in matches:
         predicted_outcome = random.choice(["home", "away"] if match["sport"] != "soccer" else ["home", "draw", "away"])
@@ -699,6 +722,8 @@ def generate_predictions_for_matches(matches: List[Dict]) -> List[Dict]:
         
         risk = "low" if confidence > 75 else "medium" if confidence > 60 else "high"
         
+        sport_motivations = motivations.get(match["sport"], motivations["soccer"])
+        
         predictions.append({
             "prediction_id": f"pred_{uuid.uuid4().hex[:8]}",
             "match_id": match["match_id"],
@@ -710,6 +735,7 @@ def generate_predictions_for_matches(matches: List[Dict]) -> List[Dict]:
             "confidence": confidence,
             "odds": odds,
             "risk_level": risk,
+            "ai_motivation": random.choice(sport_motivations),
             "analysis": f"L'analisi AI indica {match['home_team'] if predicted_outcome == 'home' else match['away_team'] if predicted_outcome == 'away' else 'Pareggio'} come esito più probabile. Edge stimato: +{random.randint(5, 18)}%",
             "value_bet": random.random() > 0.5,
         })

@@ -81,8 +81,8 @@ export default function OpportunitaScreen() {
   const canSeeCard = (index: number): 'full' | 'partial' | 'locked' => {
     if (userTier === 'premium') return 'full';
     if (userTier === 'free') return index === 0 ? 'full' : index === 1 ? 'partial' : 'locked';
-    // guest
-    return index === 0 ? 'partial' : 'locked';
+    // guest: first = full, rest locked with registration CTA
+    return index === 0 ? 'full' : 'locked';
   };
 
   if (loading) {
@@ -100,7 +100,7 @@ export default function OpportunitaScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="star" size={24} color={colors.gold} />
-          <Text style={styles.title}>Opportunità del Giorno</Text>
+          <Text style={styles.title}>Top Picks AI</Text>
         </View>
         {data?.date && <Text style={styles.dateText}>{data.date}</Text>}
       </View>
@@ -242,10 +242,10 @@ export default function OpportunitaScreen() {
                     <View style={[styles.blurLine, { width: '40%' }]} />
                   </View>
                   <Animated.View style={[styles.lockedOverlayFull, { transform: [{ scale: pulseAnim }] }]}>
-                    <TouchableOpacity style={styles.lockedFullCTA} onPress={() => router.push('/subscribe')} activeOpacity={0.8}>
+                    <TouchableOpacity style={styles.lockedFullCTA} onPress={() => router.push(userTier === 'guest' ? '/login' : '/subscribe')} activeOpacity={0.8}>
                       <Ionicons name="diamond" size={24} color={colors.gold} />
-                      <Text style={styles.lockedFullTitle}>Opportunità Premium</Text>
-                      <Text style={styles.lockedFullSub}>Sblocca con abbonamento</Text>
+                      <Text style={styles.lockedFullTitle}>{userTier === 'guest' ? 'Sblocca gratis con registrazione' : 'Top Pick Premium'}</Text>
+                      <Text style={styles.lockedFullSub}>{userTier === 'guest' ? 'Registrati in 30 secondi' : 'Sblocca con abbonamento'}</Text>
                     </TouchableOpacity>
                   </Animated.View>
                 </View>

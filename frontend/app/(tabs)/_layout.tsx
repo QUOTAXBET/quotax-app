@@ -7,7 +7,6 @@ import { useAuth } from '../../src/context/AuthContext';
 
 export default function TabLayout() {
   const { user } = useAuth();
-  const isPremium = user?.subscription_tier && user.subscription_tier !== 'free';
 
   return (
     <Tabs
@@ -35,14 +34,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="schedine"
         options={{
-          title: 'Schedine',
+          title: 'Schedine AI',
           tabBarIcon: ({ color, size }) => <Ionicons name="receipt" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="live"
         options={{
-          title: 'Opportunità',
+          title: 'Top Picks AI',
           tabBarIcon: ({ color, size }) => (
             <View>
               <Ionicons name="star" size={size} color={color} />

@@ -39,7 +39,16 @@ Sport filter tabs → Match list → AI Predictions → Bet simulator modal
 - GET /api/subscription/plans, POST /api/subscription/subscribe
 - POST /api/auth/session, GET /api/auth/me
 
+## UI Overhaul (Completed)
+- Landing Page: No-scroll, animated count-ups, win carousel, LIVE banner, CTA
+- Onboarding: 3-step flow (Obiettivo, Rischio, Sport) with haptic feedback
+- Pronostici: Haptic + glow on odds, Teaser vs Premium AI blocks, improved cards
+- Schedine AI: Filter tabs (Tutte/Singole/Multiple), "Segui questa schedina" button
+- Top Picks: Prominent Edge % banner on every card
+- All animations: Haptics, glow effects, pulse CTA, progress bars
+
 ## Status
 - All sports data, predictions, odds are **MOCKED** in backend
 - Auth via Emergent Google OAuth (functional)
 - Subscription is simulated (no real payment)
+- NO fake money/wallet (uses "Followed Bets" tracking)

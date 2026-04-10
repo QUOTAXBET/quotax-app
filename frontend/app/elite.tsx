@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../src/context/AuthContext';
 import { eliteAPI, badgesAPI } from '../src/utils/api';
 import { colors } from '../src/utils/theme';
+import BadgeUnlockPopup from '../src/components/BadgeUnlockPopup';
 
 const SUGGESTIONS = [
   "Chi vince tra Inter e Milan?",
@@ -23,9 +24,19 @@ export default function EliteScreen() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [badgePopup, setBadgePopup] = useState<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scrollRef = useRef<ScrollView>(null);
+
+  // Load persistent history on mount
+  useEffect(() => {
+    if (user?.user_id) {
+      eliteAPI.getHistory(user.user_id).then(data => {
+        if (data?.history) setHistory(data.history.map((h: any) => ({ query: h.query, response: { response: h.response, model: h.model, generated_at: h.created_at }, timestamp: h.created_at })));
+      }).catch(() => {});
+    }
+  }, [user?.user_id]);
 
   const handleAsk = async () => {
     if (!query.trim()) return;
@@ -39,7 +50,13 @@ export default function EliteScreen() {
     try {
       const result = await eliteAPI.ask(query.trim());
       setResponse(result);
-      setHistory(prev => [{ query: query.trim(), response: result, timestamp: new Date() }, ...prev].slice(0, 10));
+      setHistory(prev => [{ query: query.trim(), response: result, timestamp: new Date() }, ...prev].slice(0, 20));
+
+      // Save to MongoDB
+      if (user?.user_id) {
+        try { await eliteAPI.saveChat(user.user_id, query.trim(), result.response, result.model); } catch {}
+      }
+
       setQuery('');
 
       // Animate response in
@@ -50,7 +67,12 @@ export default function EliteScreen() {
 
       // Check elite badge
       if (user?.user_id) {
-        try { await badgesAPI.checkEliteBadge(user.user_id); } catch {}
+        try {
+          const badgeResult = await badgesAPI.checkEliteBadge(user.user_id);
+          if (badgeResult.granted && badgeResult.badge) {
+            setBadgePopup(badgeResult.badge);
+          }
+        } catch {}
       }
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
@@ -182,6 +204,12 @@ export default function EliteScreen() {
       </KeyboardAvoidingView>
 
       <View style={s.disclaimer}><Text style={s.disclaimerText}>Simulazione a scopo dimostrativo. Non incoraggiamo il gioco d'azzardo.</Text></View>
+
+      <BadgeUnlockPopup
+        visible={!!badgePopup}
+        badge={badgePopup}
+        onClose={() => setBadgePopup(null)}
+      />
     </SafeAreaView>
   );
 }

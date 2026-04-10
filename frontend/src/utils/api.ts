@@ -157,6 +157,10 @@ export const betsAPI = {
 export const eliteAPI = {
   ask: async (query: string, sport?: string) => 
     (await api.post('/elite/ask', { query, sport })).data,
+  saveChat: async (userId: string, query: string, response: string, model: string) =>
+    (await api.post('/elite/save', { user_id: userId, query, response, model })).data,
+  getHistory: async (userId: string) =>
+    (await api.get(`/elite/history/${userId}`)).data,
 };
 
 // Badges & Gamification

@@ -1098,6 +1098,33 @@ async def elite_ask(req: EliteAskRequest):
         }
 
 
+# Elite AI Chat History
+@api_router.post("/elite/save")
+async def save_elite_chat(request: Request):
+    """Save an Elite AI chat message to history"""
+    body = await request.json()
+    chat_entry = {
+        "chat_id": str(uuid.uuid4()),
+        "user_id": body.get("user_id", "anonymous"),
+        "query": body.get("query", ""),
+        "response": body.get("response", ""),
+        "model": body.get("model", ""),
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.elite_chats.insert_one(chat_entry)
+    return {"success": True, "chat_id": chat_entry["chat_id"]}
+
+@api_router.get("/elite/history/{user_id}")
+async def get_elite_history(user_id: str, limit: int = 20):
+    """Get Elite AI chat history for a user"""
+    cursor = db.elite_chats.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit)
+    chats = await cursor.to_list(length=limit)
+    return {"history": chats, "count": len(chats)}
+
+
 # ==================== GAMIFICATION & BADGES ====================
 
 BADGE_DEFINITIONS = [

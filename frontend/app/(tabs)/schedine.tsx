@@ -6,9 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { schedineAPI, publicAPI } from '../../src/utils/api';
+import { schedineAPI, publicAPI, badgesAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { Schedina } from '../../src/types';
+import BadgeUnlockPopup from '../../src/components/BadgeUnlockPopup';
 
 type FilterTab = 'all' | 'single' | 'multi';
 
@@ -22,6 +23,7 @@ export default function SchedineAIScreen() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followingId, setFollowingId] = useState<string | null>(null);
+  const [badgePopup, setBadgePopup] = useState<any>(null);
 
   const userTier = !isAuthenticated ? 'guest' : isPremium ? 'premium' : 'free';
 
@@ -60,6 +62,18 @@ export default function SchedineAIScreen() {
         return next;
       });
       Haptics.notificationAsync(result.followed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
+
+      // Check for badge unlock when following
+      if (result.followed && user?.user_id) {
+        try {
+          const badgeResult = await badgesAPI.getUserBadges(user.user_id);
+          const newBadges = (badgeResult.badges || []).filter((b: any) => b.new);
+          if (newBadges.length > 0) {
+            const def = (badgeResult.definitions || []).find((d: any) => d.badge_id === newBadges[0].badge_id);
+            if (def) setBadgePopup(def);
+          }
+        } catch {}
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -224,6 +238,12 @@ export default function SchedineAIScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      <BadgeUnlockPopup
+        visible={!!badgePopup}
+        badge={badgePopup}
+        onClose={() => setBadgePopup(null)}
+      />
     </SafeAreaView>
   );
 }

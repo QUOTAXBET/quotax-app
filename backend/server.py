@@ -1336,7 +1336,7 @@ async def get_notification_preferences(user_id: str):
     """Get notification preferences for a user"""
     prefs = await db.notification_prefs.find_one({"user_id": user_id}, {"_id": 0})
     if not prefs:
-        prefs = {
+        default_prefs = {
             "user_id": user_id,
             "value_bet": True,
             "confidence_drop": True,
@@ -1350,7 +1350,8 @@ async def get_notification_preferences(user_id: str):
             "quiet_hours_start": "23:00",
             "quiet_hours_end": "07:00",
         }
-        await db.notification_prefs.insert_one({**prefs, "_id": None} if False else prefs)
+        await db.notification_prefs.insert_one({**default_prefs})
+        prefs = await db.notification_prefs.find_one({"user_id": user_id}, {"_id": 0})
     return {"preferences": prefs}
 
 
@@ -1470,6 +1471,208 @@ def _generate_demo_notifications(user_id: str) -> list:
         },
     ]
     return demos
+
+
+# ==================== EMAIL MARKETING ====================
+
+EMAIL_TEMPLATES = {
+    "welcome": {
+        "template_id": "welcome",
+        "name": "Welcome",
+        "subject": "Benvenuto su EdgeBet — inizia da qui",
+        "preview_text": "Scopri come usare l'AI per analizzare le migliori quote ogni giorno.",
+        "body_html": """
+<div style="max-width:600px;margin:0 auto;background:#0B0F14;color:#E5E7EB;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border-radius:16px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#0B0F14,#1A2332);padding:40px 32px;text-align:center;">
+    <div style="font-size:32px;font-weight:900;color:#00FF88;">EdgeBet</div>
+    <div style="color:#6B7280;font-size:14px;margin-top:8px;">L'AI che batte i bookmaker</div>
+  </div>
+  <div style="padding:32px;">
+    <h2 style="color:#FFFFFF;font-size:22px;margin:0 0 16px;">Benvenuto su EdgeBet!</h2>
+    <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin:0 0 20px;">Scopri come usare l'AI per analizzare le migliori quote ogni giorno.</p>
+    <div style="background:#111820;border-radius:12px;padding:20px;margin:0 0 24px;">
+      <div style="color:#00FF88;font-weight:700;margin-bottom:12px;">✅ Cosa puoi fare ora:</div>
+      <div style="color:#E5E7EB;font-size:14px;line-height:2;">
+        • Consulta i pronostici AI su Calcio, NBA e UFC<br/>
+        • Segui le schedine AI con un tap<br/>
+        • Scopri i Top Picks con il miglior edge<br/>
+        • Sblocca badge e scala la classifica
+      </div>
+    </div>
+    <a href="#" style="display:inline-block;background:#00FF88;color:#0B0F14;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;">Inizia Ora</a>
+  </div>
+  <div style="padding:20px 32px;border-top:1px solid #1F2933;text-align:center;">
+    <div style="color:#4B5563;font-size:12px;">EdgeBet — Pronostici AI basati su dati, non su opinioni</div>
+  </div>
+</div>""",
+        "trigger": "Registrazione utente",
+        "timing": "Immediato",
+        "category": "onboarding",
+    },
+    "upsell": {
+        "template_id": "upsell",
+        "name": "Upsell Pro/Elite",
+        "subject": "Stai perdendo le migliori opportunità",
+        "preview_text": "Le analisi più complete sono disponibili solo per utenti Pro ed Elite.",
+        "body_html": """
+<div style="max-width:600px;margin:0 auto;background:#0B0F14;color:#E5E7EB;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border-radius:16px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#0B0F14,#1A2332);padding:40px 32px;text-align:center;">
+    <div style="font-size:32px;font-weight:900;color:#00FF88;">EdgeBet</div>
+    <div style="font-size:40px;margin-top:12px;">🔒</div>
+  </div>
+  <div style="padding:32px;">
+    <h2 style="color:#FFFFFF;font-size:22px;margin:0 0 16px;">Stai perdendo le migliori opportunità</h2>
+    <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin:0 0 20px;">Le analisi più complete sono disponibili solo per utenti Pro ed Elite.</p>
+    <div style="background:#111820;border-radius:12px;padding:20px;margin:0 0 16px;">
+      <div style="color:#FFD700;font-weight:700;margin-bottom:12px;">⭐ Piano Pro — €9,99/mese</div>
+      <div style="color:#9CA3AF;font-size:14px;line-height:1.8;">
+        • Tutte le schedine AI complete<br/>
+        • Pronostici con analisi AI<br/>
+        • Top Picks giornalieri
+      </div>
+    </div>
+    <div style="background:#111820;border-radius:12px;padding:20px;margin:0 0 24px;border:1px solid rgba(255,215,0,0.2);">
+      <div style="color:#FFD700;font-weight:700;margin-bottom:12px;">💎 Piano Elite — €29,99/mese</div>
+      <div style="color:#9CA3AF;font-size:14px;line-height:1.8;">
+        • Tutto del Pro incluso<br/>
+        • Elite AI — domande illimitate<br/>
+        • Value bet alerts in tempo reale<br/>
+        • Badge esclusivi + Classifica VIP
+      </div>
+    </div>
+    <a href="#" style="display:inline-block;background:#FFD700;color:#0B0F14;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;">Sblocca Ora</a>
+  </div>
+  <div style="padding:20px 32px;border-top:1px solid #1F2933;text-align:center;">
+    <div style="color:#4B5563;font-size:12px;">EdgeBet — Non perdere il tuo vantaggio</div>
+  </div>
+</div>""",
+        "trigger": "Utente free dopo 3 giorni",
+        "timing": "3 giorni dopo registrazione",
+        "category": "conversion",
+    },
+    "reminder": {
+        "template_id": "reminder",
+        "name": "Reminder Schedine",
+        "subject": "Nuove schedine disponibili oggi",
+        "preview_text": "Le schedine AI di oggi sono pronte — non perderle!",
+        "body_html": """
+<div style="max-width:600px;margin:0 auto;background:#0B0F14;color:#E5E7EB;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border-radius:16px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#0B0F14,#1A2332);padding:40px 32px;text-align:center;">
+    <div style="font-size:32px;font-weight:900;color:#00FF88;">EdgeBet</div>
+    <div style="font-size:40px;margin-top:12px;">🎯</div>
+  </div>
+  <div style="padding:32px;">
+    <h2 style="color:#FFFFFF;font-size:22px;margin:0 0 16px;">Nuove schedine disponibili oggi</h2>
+    <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin:0 0 20px;">Le schedine AI di oggi sono pronte — non perderle!</p>
+    <div style="background:#111820;border-radius:12px;padding:20px;margin:0 0 24px;">
+      <div style="color:#00FF88;font-weight:700;margin-bottom:12px;">📊 Oggi per te:</div>
+      <div style="color:#E5E7EB;font-size:14px;line-height:2;">
+        • 3 schedine singole con confidence >80%<br/>
+        • 2 schedine multiple ad alta quota<br/>
+        • 1 Top Pick con edge +8.3%
+      </div>
+    </div>
+    <a href="#" style="display:inline-block;background:#00FF88;color:#0B0F14;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;">Vedi le Schedine</a>
+  </div>
+  <div style="padding:20px 32px;border-top:1px solid #1F2933;text-align:center;">
+    <div style="color:#4B5563;font-size:12px;">Ricevi questa email ogni mattina alle 10:00</div>
+  </div>
+</div>""",
+        "trigger": "Ogni mattina",
+        "timing": "Ore 10:00 giornaliero",
+        "category": "engagement",
+    },
+    "elite": {
+        "template_id": "elite",
+        "name": "Elite Exclusive",
+        "subject": "Solo Elite vede queste opportunità",
+        "preview_text": "Opportunità esclusive che solo i membri Elite possono vedere.",
+        "body_html": """
+<div style="max-width:600px;margin:0 auto;background:#0B0F14;color:#E5E7EB;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border-radius:16px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#1A1A2E,#16213E);padding:40px 32px;text-align:center;border-bottom:2px solid #FFD700;">
+    <div style="font-size:32px;font-weight:900;color:#FFD700;">EdgeBet Elite</div>
+    <div style="font-size:40px;margin-top:12px;">💎</div>
+  </div>
+  <div style="padding:32px;">
+    <h2 style="color:#FFD700;font-size:22px;margin:0 0 16px;">Solo Elite vede queste opportunità</h2>
+    <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin:0 0 20px;">Opportunità esclusive che solo i membri Elite possono vedere.</p>
+    <div style="background:#111820;border:1px solid rgba(255,215,0,0.2);border-radius:12px;padding:20px;margin:0 0 16px;">
+      <div style="color:#FFD700;font-weight:700;margin-bottom:8px;">🔥 Value Bet Esclusiva</div>
+      <div style="color:#E5E7EB;font-size:16px;font-weight:700;">Arsenal vs Man City — Arsenal @2.61</div>
+      <div style="color:#00FF88;font-size:14px;margin-top:8px;">Edge: +5.6% | Confidence: 92%</div>
+    </div>
+    <div style="background:#111820;border:1px solid rgba(255,215,0,0.2);border-radius:12px;padding:20px;margin:0 0 24px;">
+      <div style="color:#FFD700;font-weight:700;margin-bottom:8px;">🎯 Schedina Elite del Giorno</div>
+      <div style="color:#E5E7EB;font-size:14px;line-height:1.8;">
+        • Inter ML @1.45<br/>
+        • Over 2.5 Bayern @1.60<br/>
+        • Lakers +3.5 @1.90
+      </div>
+      <div style="color:#00FF88;font-size:16px;font-weight:800;margin-top:12px;">Quota totale: @4.41</div>
+    </div>
+    <a href="#" style="display:inline-block;background:#FFD700;color:#0B0F14;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;">Apri nell'App</a>
+  </div>
+  <div style="padding:20px 32px;border-top:1px solid rgba(255,215,0,0.2);text-align:center;">
+    <div style="color:#FFD700;font-size:12px;">EdgeBet Elite — Il vantaggio che nessun altro ha</div>
+  </div>
+</div>""",
+        "trigger": "Utenti Elite — nuove opportunità esclusive",
+        "timing": "Quando disponibile",
+        "category": "exclusive",
+    },
+}
+
+
+@api_router.get("/emails/templates")
+async def get_email_templates():
+    """Get all email marketing templates"""
+    return {"templates": list(EMAIL_TEMPLATES.values())}
+
+
+@api_router.get("/emails/template/{template_id}")
+async def get_email_template(template_id: str):
+    """Get a specific email template"""
+    template = EMAIL_TEMPLATES.get(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template non trovato")
+    return {"template": template}
+
+
+@api_router.post("/emails/send-test")
+async def send_test_email(request: Request):
+    """Simulate sending a test email (mock)"""
+    body = await request.json()
+    template_id = body.get("template_id", "welcome")
+    to_email = body.get("email", "test@example.com")
+    
+    template = EMAIL_TEMPLATES.get(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template non trovato")
+    
+    # Store in DB as "sent" email (mock)
+    email_record = {
+        "email_id": str(uuid.uuid4()),
+        "template_id": template_id,
+        "to_email": to_email,
+        "subject": template["subject"],
+        "status": "sent",
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.sent_emails.insert_one(email_record)
+    
+    return {
+        "success": True,
+        "message": f"Email '{template['subject']}' inviata a {to_email} (simulazione)",
+        "email_id": email_record["email_id"],
+    }
+
+
+@api_router.get("/emails/history")
+async def get_email_history(limit: int = 20):
+    """Get sent email history"""
+    cursor = db.sent_emails.find({}, {"_id": 0}).sort("sent_at", -1).limit(limit)
+    emails = await cursor.to_list(length=limit)
+    return {"emails": emails, "count": len(emails)}
 
 
 # ==================== ROOT ====================

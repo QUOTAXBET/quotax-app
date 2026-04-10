@@ -151,6 +151,25 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Secondary Actions */}
+        <View style={st.secondaryActions}>
+          <TouchableOpacity style={st.actionBtn} onPress={() => router.push('/notifications')} activeOpacity={0.7}>
+            <Ionicons name="notifications-outline" size={18} color={colors.textSecondary} />
+            <Text style={st.actionBtnText}>Notifiche</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={st.actionBtn} onPress={() => router.push('/notification-settings')} activeOpacity={0.7}>
+            <Ionicons name="settings-outline" size={18} color={colors.textSecondary} />
+            <Text style={st.actionBtnText}>Impostazioni Notifiche</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={st.actionBtn} onPress={() => router.push('/emails')} activeOpacity={0.7}>
+            <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
+            <Text style={st.actionBtnText}>Email Marketing</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
         {/* Section Toggle */}
         <View style={st.toggleRow}>
           <TouchableOpacity style={[st.toggleBtn, activeSection === 'badges' && st.toggleActive]} onPress={() => { Haptics.selectionAsync(); setActiveSection('badges'); }}>
@@ -253,6 +272,10 @@ const st = StyleSheet.create({
   eliteBtnText: { color: colors.gold, fontWeight: '700', fontSize: 14 },
   subscribeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(0,255,136,0.08)', borderRadius: 16, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(0,255,136,0.2)' },
   subscribeBtnText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+  // Secondary Actions
+  secondaryActions: { marginHorizontal: 20, marginBottom: 14, gap: 6 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, borderWidth: 1, borderColor: colors.border },
+  actionBtnText: { flex: 1, color: colors.textPrimary, fontSize: 14, fontWeight: '500' },
   // Toggle
   toggleRow: { flexDirection: 'row', marginHorizontal: 20, gap: 8, marginBottom: 14 },
   toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },

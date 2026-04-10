@@ -116,6 +116,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Returns EdgeBet API v2.0.0"
+      - working: true
+        agent: "testing"
+        comment: "Updated to v2.1.0 as required. Root endpoint working correctly."
 
   - task: "Matches API - GET /api/matches and /api/matches/{sport}"
     implemented: true
@@ -221,6 +224,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "Subscription plans tested successfully. Returns exactly 3 plans (base, pro, premium) with correct pricing and structure. Trial information included."
+      - working: true
+        agent: "testing"
+        comment: "Updated to new pricing structure: Pro €9.99, Elite €29.99 as required. All tests passing."
 
   - task: "Social Activity API - GET /api/social/activity"
     implemented: true
@@ -251,6 +257,90 @@ backend:
       - working: true
         agent: "testing"
         comment: "Public stats endpoint tested successfully. Returns reasonable stats (roi_7d, win_rate, streak) with values in expected ranges. Win rate between 0-100%, ROI values reasonable."
+
+  - task: "Public Preview Schedine API - GET /api/public/preview-schedine"
+    implemented: true
+    working: true
+    file: "routes/public.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "New endpoint tested successfully. Returns array of preview schedine for public access."
+
+  - task: "Opportunities API - GET /api/opportunities"
+    implemented: true
+    working: true
+    file: "routes/opportunities.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "New endpoint tested successfully. Returns date, total, and opportunities array with edge_percentage as required."
+
+  - task: "Leaderboard API - GET /api/leaderboard"
+    implemented: true
+    working: true
+    file: "routes/social.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Leaderboard endpoint tested successfully. Returns leaderboard array with rank, name, roi as required. Proper response structure with metadata."
+
+  - task: "Badge Definitions API - GET /api/badges/definitions"
+    implemented: true
+    working: true
+    file: "routes/gamification.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Badge definitions tested successfully. Contains all 10 badges including required 'first_win' (Prima Vittoria) and 'streak_5' (In Fiamme). Prize info includes '1 mese gratis' for completing all badges. All badge definitions have badge_id, name, and points."
+
+  - task: "Notification Types API - GET /api/notifications/types"
+    implemented: true
+    working: true
+    file: "routes/notifications.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Notification types endpoint tested successfully. Fixed Unicode encoding issues. Returns types dict with all notification categories."
+
+  - task: "User Notifications API - GET /api/notifications/guest_demo"
+    implemented: true
+    working: true
+    file: "routes/notifications.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "User notifications endpoint tested successfully. Returns notifications array with unread_count as required."
+
+  - task: "Email Templates API - GET /api/emails/templates"
+    implemented: true
+    working: true
+    file: "routes/emails.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Email templates endpoint tested successfully. Returns templates array as required."
 
   - task: "Auth Session API - POST /api/auth/session"
     implemented: true
@@ -375,8 +465,8 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "2.0"
-  test_sequence: 2
+  version: "2.1"
+  test_sequence: 3
   run_ui: false
 
 test_plan:
@@ -390,3 +480,5 @@ agent_communication:
     message: "EdgeBet hybrid layout fully rebuilt. Backend now has all missing endpoints (matches, predictions, bets/simulate, bets, user/wallet). Frontend has FOMO elements, social proof ticker, proper sport filters. All endpoints returning 200 OK from browser. Please test all backend API endpoints."
   - agent: "testing"
     message: "Backend API testing completed successfully. All 15 requested endpoints tested and working correctly. Created comprehensive test suite in backend_test.py. All public endpoints (matches, predictions, bet simulation, schedine, live, social activity, public stats, subscription plans, AI predictions) are functioning properly with correct data structures and validation. Auth-required endpoints (place bet, user wallet) not tested but implementation appears correct. No critical issues found."
+  - agent: "testing"
+    message: "Comprehensive testing of refactored modular backend completed. All 15 critical endpoints tested successfully: Root (v2.1.0), Public Stats, Public Preview Schedine, Schedine, Matches, Predictions, Opportunities, Live Matches, Social Activity, Leaderboard, Badge Definitions (10 badges including first_win and streak_5), Notification Types (fixed Unicode issues), User Notifications, Subscription Plans (Pro €9.99, Elite €29.99), Email Templates. Fixed Unicode encoding issues in notifications. All endpoints return 200 status codes with correct data structures."

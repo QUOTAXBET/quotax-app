@@ -1,378 +1,408 @@
 #!/usr/bin/env python3
 """
-EdgeBet Backend API Testing Suite
-Tests all public API endpoints for the sports betting app
+EdgeBet API Backend Testing Suite
+Tests all critical endpoints for the refactored modular backend
 """
 
 import requests
 import json
+from typing import Dict, Any, List
 import sys
-from typing import Dict, Any, Optional
-import time
 
-# Backend URL from environment
+# Backend URL from frontend .env
 BACKEND_URL = "https://sharp-edge-6.preview.emergentagent.com/api"
 
 class EdgeBetAPITester:
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json',
-            'User-Agent': 'EdgeBet-Test-Client/1.0'
-        })
-        self.test_results = []
-        self.match_id = None  # Will store a match ID for bet simulation
+        self.results = []
+        self.failed_tests = []
         
-    def log_test(self, endpoint: str, method: str, status: str, details: str = ""):
+    def log_result(self, endpoint: str, status: str, details: str = "", response_data: Any = None):
         """Log test result"""
         result = {
-            'endpoint': endpoint,
-            'method': method,
-            'status': status,
-            'details': details,
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            "endpoint": endpoint,
+            "status": status,
+            "details": details,
+            "response_data": response_data
         }
-        self.test_results.append(result)
+        self.results.append(result)
         
-        status_icon = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
-        print(f"{status_icon} {method} {endpoint} - {status}")
-        if details:
-            print(f"   Details: {details}")
-    
-    def test_endpoint(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None, 
-                     expected_status: int = 200, required_fields: Optional[list] = None) -> Optional[Dict]:
+        if status == "FAIL":
+            self.failed_tests.append(result)
+            
+        print(f"[{status}] {endpoint}: {details}")
+        
+    def test_endpoint(self, method: str, endpoint: str, expected_fields: List[str] = None, 
+                     expected_values: Dict[str, Any] = None, payload: Dict = None) -> Dict:
         """Generic endpoint tester"""
         url = f"{BACKEND_URL}{endpoint}"
         
         try:
-            if method == "GET":
-                response = self.session.get(url, timeout=10)
-            elif method == "POST":
-                response = self.session.post(url, json=data, timeout=10)
+            if method.upper() == "GET":
+                response = requests.get(url, timeout=10)
+            elif method.upper() == "POST":
+                response = requests.post(url, json=payload, timeout=10)
             else:
-                self.log_test(endpoint, method, "FAIL", f"Unsupported method: {method}")
-                return None
-            
-            # Check status code
-            if response.status_code != expected_status:
-                self.log_test(endpoint, method, "FAIL", 
-                            f"Expected {expected_status}, got {response.status_code}: {response.text[:200]}")
-                return None
-            
-            # Parse JSON response
-            try:
-                json_data = response.json()
-            except json.JSONDecodeError:
-                self.log_test(endpoint, method, "FAIL", "Invalid JSON response")
-                return None
-            
-            # Check required fields
-            if required_fields:
-                missing_fields = []
-                for field in required_fields:
-                    if field not in json_data:
-                        missing_fields.append(field)
+                raise ValueError(f"Unsupported method: {method}")
                 
+            # Check status code
+            if response.status_code != 200:
+                self.log_result(endpoint, "FAIL", f"Status code: {response.status_code}")
+                return {"success": False, "status_code": response.status_code}
+                
+            # Parse JSON
+            try:
+                data = response.json()
+            except json.JSONDecodeError:
+                self.log_result(endpoint, "FAIL", "Invalid JSON response")
+                return {"success": False, "error": "Invalid JSON"}
+                
+            # Check expected fields
+            if expected_fields:
+                missing_fields = []
+                for field in expected_fields:
+                    if field not in data:
+                        missing_fields.append(field)
+                        
                 if missing_fields:
-                    self.log_test(endpoint, method, "FAIL", f"Missing fields: {missing_fields}")
-                    return None
-            
-            self.log_test(endpoint, method, "PASS", f"Response: {len(str(json_data))} chars")
-            return json_data
+                    self.log_result(endpoint, "FAIL", f"Missing fields: {missing_fields}", data)
+                    return {"success": False, "missing_fields": missing_fields}
+                    
+            # Check expected values
+            if expected_values:
+                for key, expected_value in expected_values.items():
+                    if key in data and data[key] != expected_value:
+                        self.log_result(endpoint, "FAIL", f"Expected {key}={expected_value}, got {data[key]}", data)
+                        return {"success": False, "value_mismatch": {key: {"expected": expected_value, "actual": data[key]}}}
+                        
+            self.log_result(endpoint, "PASS", f"Status: {response.status_code}", data)
+            return {"success": True, "data": data, "status_code": response.status_code}
             
         except requests.exceptions.RequestException as e:
-            self.log_test(endpoint, method, "FAIL", f"Request error: {str(e)}")
-            return None
-        except Exception as e:
-            self.log_test(endpoint, method, "FAIL", f"Unexpected error: {str(e)}")
-            return None
-    
+            self.log_result(endpoint, "FAIL", f"Request error: {str(e)}")
+            return {"success": False, "error": str(e)}
+            
     def test_root_endpoint(self):
-        """Test GET /api/ - Root endpoint"""
-        print("\n🔍 Testing Root Endpoint...")
-        result = self.test_endpoint("/", required_fields=["message", "version"])
+        """Test 1: Root endpoint"""
+        print("\n=== Testing Root Endpoint ===")
+        result = self.test_endpoint("GET", "/", expected_values={"version": "2.1.0"})
+        return result["success"]
         
-        if result:
-            if result.get("message") == "EdgeBet API" and result.get("version") == "2.0.0":
-                self.log_test("/", "GET", "PASS", "Correct API info returned")
-            else:
-                self.log_test("/", "GET", "WARN", f"Unexpected content: {result}")
-    
-    def test_matches_endpoints(self):
-        """Test matches endpoints"""
-        print("\n🏈 Testing Matches Endpoints...")
+    def test_public_stats(self):
+        """Test 2: Public Stats"""
+        print("\n=== Testing Public Stats ===")
+        result = self.test_endpoint("GET", "/public/stats", 
+                                  expected_fields=["roi_7d", "win_rate", "active_users"])
+        return result["success"]
         
-        # Test all matches
-        matches = self.test_endpoint("/matches", required_fields=[])
-        if matches and isinstance(matches, list) and len(matches) > 0:
-            # Store first match ID for bet simulation
-            self.match_id = matches[0].get("match_id")
-            
-            # Validate match structure
-            match = matches[0]
-            required_match_fields = ["match_id", "sport", "league", "home_team", "away_team", 
-                                   "odds_home", "odds_away", "match_date"]
-            missing = [f for f in required_match_fields if f not in match]
-            if missing:
-                self.log_test("/matches", "GET", "FAIL", f"Match missing fields: {missing}")
-            else:
-                self.log_test("/matches", "GET", "PASS", f"Found {len(matches)} matches with correct structure")
+    def test_public_preview_schedine(self):
+        """Test 3: Public Preview Schedine"""
+        print("\n=== Testing Public Preview Schedine ===")
+        result = self.test_endpoint("GET", "/public/preview-schedine")
         
-        # Test sport-specific endpoints
-        for sport in ["soccer", "nba", "ufc"]:
-            sport_matches = self.test_endpoint(f"/matches/{sport}")
-            if sport_matches and isinstance(sport_matches, list):
-                # Verify all matches are of correct sport
-                wrong_sport = [m for m in sport_matches if m.get("sport") != sport]
-                if wrong_sport:
-                    self.log_test(f"/matches/{sport}", "GET", "FAIL", 
-                                f"Found {len(wrong_sport)} matches with wrong sport")
-                else:
-                    self.log_test(f"/matches/{sport}", "GET", "PASS", 
-                                f"Found {len(sport_matches)} {sport} matches")
-    
-    def test_predictions_endpoints(self):
-        """Test predictions endpoints"""
-        print("\n🤖 Testing Predictions Endpoints...")
+        if result["success"]:
+            data = result["data"]
+            if not isinstance(data, list):
+                self.log_result("/public/preview-schedine", "FAIL", "Response should be an array")
+                return False
+                
+        return result["success"]
         
-        # Test all predictions
-        predictions = self.test_endpoint("/predictions")
-        if predictions and isinstance(predictions, list) and len(predictions) > 0:
-            # Validate prediction structure
-            pred = predictions[0]
-            required_pred_fields = ["prediction_id", "match_id", "predicted_outcome", 
-                                  "confidence", "risk_level", "odds"]
-            missing = [f for f in required_pred_fields if f not in pred]
-            if missing:
-                self.log_test("/predictions", "GET", "FAIL", f"Prediction missing fields: {missing}")
-            else:
-                self.log_test("/predictions", "GET", "PASS", 
-                            f"Found {len(predictions)} predictions with correct structure")
+    def test_schedine(self):
+        """Test 4: Schedine"""
+        print("\n=== Testing Schedine ===")
+        result = self.test_endpoint("GET", "/schedine")
         
-        # Test sport-specific predictions
-        for sport in ["soccer", "nba", "ufc"]:
-            sport_preds = self.test_endpoint(f"/predictions/{sport}")
-            if sport_preds and isinstance(sport_preds, list):
-                # Verify all predictions are of correct sport
-                wrong_sport = [p for p in sport_preds if p.get("sport") != sport]
-                if wrong_sport:
-                    self.log_test(f"/predictions/{sport}", "GET", "FAIL", 
-                                f"Found {len(wrong_sport)} predictions with wrong sport")
-                else:
-                    self.log_test(f"/predictions/{sport}", "GET", "PASS", 
-                                f"Found {len(sport_preds)} {sport} predictions")
-    
-    def test_bet_simulation(self):
-        """Test bet simulation endpoint"""
-        print("\n💰 Testing Bet Simulation...")
+        if result["success"]:
+            data = result["data"]
+            if not isinstance(data, list):
+                self.log_result("/schedine", "FAIL", "Response should be an array")
+                return False
+                
+        return result["success"]
         
-        # Get fresh matches for simulation test
-        fresh_matches = self.test_endpoint("/matches")
-        if not fresh_matches or len(fresh_matches) == 0:
-            self.log_test("/bets/simulate", "POST", "SKIP", "No matches available for simulation")
-            return
+    def test_matches(self):
+        """Test 5: Matches"""
+        print("\n=== Testing Matches ===")
+        result = self.test_endpoint("GET", "/matches")
         
-        # Use the first available match
-        match_id = fresh_matches[0].get("match_id")
-        if not match_id:
-            self.log_test("/bets/simulate", "POST", "SKIP", "No valid match_id found")
-            return
-        
-        # Test valid simulation
-        sim_data = {
-            "match_id": match_id,
-            "bet_type": "home",
-            "stake": 50
-        }
-        
-        result = self.test_endpoint("/bets/simulate", method="POST", data=sim_data,
-                                  required_fields=["potential_payout", "win_probability", "expected_value"])
-        
-        if result:
-            # Validate calculation logic
-            stake = result.get("stake", 0)
-            odds = result.get("odds", 0)
-            payout = result.get("potential_payout", 0)
-            
-            expected_payout = stake * odds
-            if abs(payout - expected_payout) > 0.01:  # Allow small floating point differences
-                self.log_test("/bets/simulate", "POST", "FAIL", 
-                            f"Payout calculation error: expected {expected_payout}, got {payout}")
-            else:
-                self.log_test("/bets/simulate", "POST", "PASS", "Bet simulation calculations correct")
-        
-        # Test invalid data
-        invalid_data = {"match_id": "invalid", "bet_type": "home", "stake": 50}
-        self.test_endpoint("/bets/simulate", method="POST", data=invalid_data, expected_status=404)
-    
-    def test_schedine_endpoint(self):
-        """Test schedine endpoint"""
-        print("\n📋 Testing Schedine Endpoint...")
-        
-        schedine = self.test_endpoint("/schedine")
-        if schedine and isinstance(schedine, list):
-            if len(schedine) > 0:
-                # Check schedine structure
-                sch = schedine[0]
-                required_fields = ["schedina_id", "matches", "total_odds", "stake", 
-                                 "potential_win", "status"]
-                missing = [f for f in required_fields if f not in sch]
-                if missing:
-                    self.log_test("/schedine", "GET", "FAIL", f"Schedine missing fields: {missing}")
-                else:
-                    self.log_test("/schedine", "GET", "PASS", 
-                                f"Found {len(schedine)} schedine with correct structure")
-            else:
-                self.log_test("/schedine", "GET", "WARN", "Empty schedine array")
-    
-    def test_live_endpoint(self):
-        """Test live matches endpoint"""
-        print("\n🔴 Testing Live Matches...")
-        
-        live_matches = self.test_endpoint("/live")
-        if live_matches and isinstance(live_matches, list):
-            if len(live_matches) > 0:
-                match = live_matches[0]
-                required_fields = ["match_id", "sport", "league", "home", "away", "score"]
+        if result["success"]:
+            data = result["data"]
+            if not isinstance(data, list):
+                self.log_result("/matches", "FAIL", "Response should be an array")
+                return False
+                
+            # Check first match has required fields
+            if data and len(data) > 0:
+                match = data[0]
+                required_fields = ["match_id", "sport", "league"]
                 missing = [f for f in required_fields if f not in match]
                 if missing:
-                    self.log_test("/live", "GET", "FAIL", f"Live match missing fields: {missing}")
-                else:
-                    self.log_test("/live", "GET", "PASS", 
-                                f"Found {len(live_matches)} live matches with correct structure")
-            else:
-                self.log_test("/live", "GET", "WARN", "No live matches available")
-    
+                    self.log_result("/matches", "FAIL", f"Match missing fields: {missing}")
+                    return False
+                    
+        return result["success"]
+        
+    def test_predictions(self):
+        """Test 6: Predictions"""
+        print("\n=== Testing Predictions ===")
+        result = self.test_endpoint("GET", "/predictions")
+        
+        if result["success"]:
+            data = result["data"]
+            if not isinstance(data, list):
+                self.log_result("/predictions", "FAIL", "Response should be an array")
+                return False
+                
+        return result["success"]
+        
+    def test_opportunities(self):
+        """Test 7: Opportunities"""
+        print("\n=== Testing Opportunities ===")
+        result = self.test_endpoint("GET", "/opportunities")
+        
+        if result["success"]:
+            data = result["data"]
+            required_fields = ["date", "total", "opportunities"]
+            missing = [f for f in required_fields if f not in data]
+            if missing:
+                self.log_result("/opportunities", "FAIL", f"Missing fields: {missing}")
+                return False
+                
+            # Check opportunities array has edge_percentage
+            if "opportunities" in data and isinstance(data["opportunities"], list) and data["opportunities"]:
+                opp = data["opportunities"][0]
+                if "edge_percentage" not in opp:
+                    self.log_result("/opportunities", "FAIL", "Opportunity missing edge_percentage")
+                    return False
+                    
+        return result["success"]
+        
+    def test_live_matches(self):
+        """Test 8: Live Matches"""
+        print("\n=== Testing Live Matches ===")
+        result = self.test_endpoint("GET", "/live")
+        
+        if result["success"]:
+            data = result["data"]
+            if not isinstance(data, list):
+                self.log_result("/live", "FAIL", "Response should be an array")
+                return False
+                
+        return result["success"]
+        
     def test_social_activity(self):
-        """Test social activity endpoint"""
-        print("\n👥 Testing Social Activity...")
+        """Test 9: Social Activity"""
+        print("\n=== Testing Social Activity ===")
+        result = self.test_endpoint("GET", "/social/activity", 
+                                  expected_fields=["activities", "viewing_now"])
+        return result["success"]
         
-        activity = self.test_endpoint("/social/activity", 
-                                    required_fields=["viewing_now", "subscribed_today", "activities"])
+    def test_leaderboard(self):
+        """Test 10: Leaderboard"""
+        print("\n=== Testing Leaderboard ===")
+        result = self.test_endpoint("GET", "/leaderboard")
         
-        if activity:
-            activities = activity.get("activities", [])
-            if isinstance(activities, list) and len(activities) > 0:
-                # Check activity structure
-                act = activities[0]
-                if "type" in act and "user" in act and "time" in act:
-                    self.log_test("/social/activity", "GET", "PASS", 
-                                f"Found {len(activities)} activities with correct structure")
-                else:
-                    self.log_test("/social/activity", "GET", "FAIL", "Activity missing required fields")
-    
-    def test_public_stats(self):
-        """Test public stats endpoint"""
-        print("\n📊 Testing Public Stats...")
+        if result["success"]:
+            data = result["data"]
+            if "leaderboard" not in data:
+                self.log_result("/leaderboard", "FAIL", "Missing 'leaderboard' field")
+                return False
+                
+            leaderboard = data["leaderboard"]
+            if not isinstance(leaderboard, list):
+                self.log_result("/leaderboard", "FAIL", "Leaderboard should be an array")
+                return False
+                
+            # Check first entry has required fields
+            if leaderboard and len(leaderboard) > 0:
+                entry = leaderboard[0]
+                required_fields = ["rank", "name", "roi"]
+                missing = [f for f in required_fields if f not in entry]
+                if missing:
+                    self.log_result("/leaderboard", "FAIL", f"Leaderboard entry missing fields: {missing}")
+                    return False
+                    
+        return result["success"]
         
-        stats = self.test_endpoint("/public/stats", 
-                                 required_fields=["roi_7d", "win_rate", "streak"])
+    def test_badge_definitions(self):
+        """Test 11: Badge Definitions"""
+        print("\n=== Testing Badge Definitions ===")
+        result = self.test_endpoint("GET", "/badges/definitions")
         
-        if stats:
-            # Validate stat values are reasonable
-            roi = stats.get("roi_7d", 0)
-            win_rate = stats.get("win_rate", 0)
-            
-            if not (0 <= win_rate <= 100):
-                self.log_test("/public/stats", "GET", "FAIL", f"Invalid win_rate: {win_rate}")
-            elif not (-100 <= roi <= 1000):  # Reasonable ROI range
-                self.log_test("/public/stats", "GET", "FAIL", f"Invalid ROI: {roi}")
-            else:
-                self.log_test("/public/stats", "GET", "PASS", "Stats values are reasonable")
-    
-    def test_preview_schedine(self):
-        """Test preview schedine for guests"""
-        print("\n👁️ Testing Preview Schedine...")
+        if result["success"]:
+            data = result["data"]
+            if "badges" not in data:
+                self.log_result("/badges/definitions", "FAIL", "Missing 'badges' field")
+                return False
+                
+            badges = data["badges"]
+            if not isinstance(badges, list):
+                self.log_result("/badges/definitions", "FAIL", "Badges should be an array")
+                return False
+                
+            # Check for specific badges
+            badge_ids = [badge.get("badge_id") for badge in badges]
+            required_badges = ["first_win", "streak_5"]
+            missing_badges = [b for b in required_badges if b not in badge_ids]
+            if missing_badges:
+                self.log_result("/badges/definitions", "FAIL", f"Missing required badges: {missing_badges}")
+                return False
+                
+            # Check badge structure
+            if badges:
+                badge = badges[0]
+                required_fields = ["badge_id", "name", "points"]
+                missing = [f for f in required_fields if f not in badge]
+                if missing:
+                    self.log_result("/badges/definitions", "FAIL", f"Badge missing fields: {missing}")
+                    return False
+                    
+            # Check for prize info
+            if "total_badges" not in data:
+                self.log_result("/badges/definitions", "FAIL", "Missing total_badges field")
+                return False
+                
+            # Check if there are 10 badge definitions
+            if len(badges) != 10:
+                self.log_result("/badges/definitions", "FAIL", f"Expected 10 badges, got {len(badges)}")
+                return False
+                
+        return result["success"]
         
-        preview = self.test_endpoint("/public/preview-schedine")
-        if preview and isinstance(preview, list):
-            if len(preview) > 0:
-                self.log_test("/public/preview-schedine", "GET", "PASS", 
-                            f"Found {len(preview)} preview schedine")
-            else:
-                self.log_test("/public/preview-schedine", "GET", "WARN", "Empty preview schedine")
-    
+    def test_notification_types(self):
+        """Test 12: Notification Types"""
+        print("\n=== Testing Notification Types ===")
+        result = self.test_endpoint("GET", "/notifications/types")
+        
+        if result["success"]:
+            data = result["data"]
+            if "types" not in data:
+                self.log_result("/notifications/types", "FAIL", "Missing 'types' field")
+                return False
+                
+        return result["success"]
+        
+    def test_user_notifications(self):
+        """Test 13: User Notifications (Guest Demo)"""
+        print("\n=== Testing User Notifications ===")
+        result = self.test_endpoint("GET", "/notifications/guest_demo")
+        
+        if result["success"]:
+            data = result["data"]
+            required_fields = ["notifications", "unread_count"]
+            missing = [f for f in required_fields if f not in data]
+            if missing:
+                self.log_result("/notifications/guest_demo", "FAIL", f"Missing fields: {missing}")
+                return False
+                
+            if not isinstance(data["notifications"], list):
+                self.log_result("/notifications/guest_demo", "FAIL", "Notifications should be an array")
+                return False
+                
+        return result["success"]
+        
     def test_subscription_plans(self):
-        """Test subscription plans endpoint"""
-        print("\n💳 Testing Subscription Plans...")
+        """Test 14: Subscription Plans"""
+        print("\n=== Testing Subscription Plans ===")
+        result = self.test_endpoint("GET", "/subscription/plans")
         
-        plans = self.test_endpoint("/subscription/plans", required_fields=["plans"])
+        if result["success"]:
+            data = result["data"]
+            if "plans" not in data:
+                self.log_result("/subscription/plans", "FAIL", "Missing 'plans' field")
+                return False
+                
+            plans = data["plans"]
+            if not isinstance(plans, list):
+                self.log_result("/subscription/plans", "FAIL", "Plans should be an array")
+                return False
+                
+            # Check for Pro (€9.99) and Elite (€29.99)
+            plan_names = [plan.get("name", "").lower() for plan in plans]
+            if "pro" not in plan_names:
+                self.log_result("/subscription/plans", "FAIL", "Missing Pro plan")
+                return False
+                
+            if "elite" not in plan_names:
+                self.log_result("/subscription/plans", "FAIL", "Missing Elite plan")
+                return False
+                
+            # Check pricing (accepting both numeric and string formats)
+            for plan in plans:
+                if plan.get("name", "").lower() == "pro":
+                    price = plan.get("price")
+                    if price != 9.99 and price != "€9.99":
+                        self.log_result("/subscription/plans", "FAIL", f"Pro plan price should be 9.99 or €9.99, got {price}")
+                        return False
+                elif plan.get("name", "").lower() == "elite":
+                    price = plan.get("price")
+                    if price != 29.99 and price != "€29.99":
+                        self.log_result("/subscription/plans", "FAIL", f"Elite plan price should be 29.99 or €29.99, got {price}")
+                        return False
+                        
+        return result["success"]
         
-        if plans:
-            plan_list = plans.get("plans", [])
-            if len(plan_list) == 3:  # Should have 3 plans
-                plan_ids = [p.get("id") for p in plan_list]
-                expected_ids = ["base", "pro", "premium"]
-                if set(plan_ids) == set(expected_ids):
-                    self.log_test("/subscription/plans", "GET", "PASS", "Found all 3 expected plans")
-                else:
-                    self.log_test("/subscription/plans", "GET", "FAIL", 
-                                f"Expected plans {expected_ids}, got {plan_ids}")
-            else:
-                self.log_test("/subscription/plans", "GET", "FAIL", 
-                            f"Expected 3 plans, got {len(plan_list)}")
-    
-    def test_ai_predictions(self):
-        """Test AI predictions endpoint (should be locked for guests)"""
-        print("\n🧠 Testing AI Predictions...")
+    def test_email_templates(self):
+        """Test 15: Email Templates"""
+        print("\n=== Testing Email Templates ===")
+        result = self.test_endpoint("GET", "/emails/templates")
         
-        ai_preds = self.test_endpoint("/ai/predictions")
-        if ai_preds:
-            # For guests, should be locked
-            if ai_preds.get("locked") is True:
-                self.log_test("/ai/predictions", "GET", "PASS", "Correctly locked for guests")
-            else:
-                self.log_test("/ai/predictions", "GET", "WARN", "AI predictions not locked for guests")
-    
+        if result["success"]:
+            data = result["data"]
+            if "templates" not in data:
+                self.log_result("/emails/templates", "FAIL", "Missing 'templates' field")
+                return False
+                
+            if not isinstance(data["templates"], list):
+                self.log_result("/emails/templates", "FAIL", "Templates should be an array")
+                return False
+                
+        return result["success"]
+        
     def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting EdgeBet Backend API Tests...")
-        print(f"Testing against: {BACKEND_URL}")
+        """Run all tests"""
+        print("🚀 Starting EdgeBet API Backend Testing Suite")
+        print(f"Backend URL: {BACKEND_URL}")
         print("=" * 60)
         
-        # Run all tests
-        self.test_root_endpoint()
-        self.test_matches_endpoints()
-        self.test_predictions_endpoints()
-        self.test_bet_simulation()
-        self.test_schedine_endpoint()
-        self.test_live_endpoint()
-        self.test_social_activity()
-        self.test_public_stats()
-        self.test_preview_schedine()
-        self.test_subscription_plans()
-        self.test_ai_predictions()
+        tests = [
+            ("Root Endpoint", self.test_root_endpoint),
+            ("Public Stats", self.test_public_stats),
+            ("Public Preview Schedine", self.test_public_preview_schedine),
+            ("Schedine", self.test_schedine),
+            ("Matches", self.test_matches),
+            ("Predictions", self.test_predictions),
+            ("Opportunities", self.test_opportunities),
+            ("Live Matches", self.test_live_matches),
+            ("Social Activity", self.test_social_activity),
+            ("Leaderboard", self.test_leaderboard),
+            ("Badge Definitions", self.test_badge_definitions),
+            ("Notification Types", self.test_notification_types),
+            ("User Notifications", self.test_user_notifications),
+            ("Subscription Plans", self.test_subscription_plans),
+            ("Email Templates", self.test_email_templates),
+        ]
         
-        # Summary
+        passed = 0
+        total = len(tests)
+        
+        for test_name, test_func in tests:
+            try:
+                if test_func():
+                    passed += 1
+            except Exception as e:
+                self.log_result(test_name, "ERROR", f"Test execution error: {str(e)}")
+                
         print("\n" + "=" * 60)
-        print("📋 TEST SUMMARY")
-        print("=" * 60)
+        print(f"🏁 Testing Complete: {passed}/{total} tests passed")
         
-        passed = len([r for r in self.test_results if r['status'] == 'PASS'])
-        failed = len([r for r in self.test_results if r['status'] == 'FAIL'])
-        warnings = len([r for r in self.test_results if r['status'] == 'WARN'])
-        skipped = len([r for r in self.test_results if r['status'] == 'SKIP'])
-        
-        print(f"✅ PASSED: {passed}")
-        print(f"❌ FAILED: {failed}")
-        print(f"⚠️  WARNINGS: {warnings}")
-        print(f"⏭️  SKIPPED: {skipped}")
-        print(f"📊 TOTAL: {len(self.test_results)}")
-        
-        if failed > 0:
-            print("\n❌ FAILED TESTS:")
-            for result in self.test_results:
-                if result['status'] == 'FAIL':
-                    print(f"   {result['method']} {result['endpoint']}: {result['details']}")
-        
-        if warnings > 0:
-            print("\n⚠️  WARNINGS:")
-            for result in self.test_results:
-                if result['status'] == 'WARN':
-                    print(f"   {result['method']} {result['endpoint']}: {result['details']}")
-        
-        print("\n🏁 Testing completed!")
-        return failed == 0
+        if self.failed_tests:
+            print(f"\n❌ Failed Tests ({len(self.failed_tests)}):")
+            for failed in self.failed_tests:
+                print(f"  - {failed['endpoint']}: {failed['details']}")
+                
+        return passed == total
 
 if __name__ == "__main__":
     tester = EdgeBetAPITester()

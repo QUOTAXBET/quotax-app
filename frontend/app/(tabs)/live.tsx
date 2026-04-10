@@ -41,9 +41,14 @@ export default function TopPicksScreen() {
   const getRiskColor = (r: string) => r === 'low' ? colors.primary : r === 'medium' ? '#FFB800' : colors.loss;
 
   const canSeeCard = (index: number): 'full' | 'partial' | 'locked' => {
+    // Elite: ALL top picks completi
     if (userTier === 'premium') return 'full';
-    if (userTier === 'free') return index === 0 ? 'full' : index === 1 ? 'partial' : 'locked';
-    return index === 0 ? 'full' : 'locked';
+    // Pro: 2 top picks completi, rest "Passa a Elite"
+    if (userTier === 'pro') return index < 2 ? 'full' : 'locked';
+    // Free: 2 top picks (partial view)
+    if (userTier === 'free') return index < 2 ? 'partial' : 'locked';
+    // Guest: no top picks
+    return 'locked';
   };
 
   if (loading) return (
@@ -177,8 +182,8 @@ export default function TopPicksScreen() {
                   <Animated.View style={[st.lockedOverlayFull, { transform: [{ scale: pulseAnim }] }]}>
                     <TouchableOpacity style={st.lockedFullCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(userTier === 'guest' ? '/login' : '/subscribe'); }} activeOpacity={0.8}>
                       <Ionicons name="diamond" size={24} color={colors.gold} />
-                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : 'Attiva Pro ora'}</Text>
-                      <Text style={st.lockedFullSub}>Non perdere questa quota</Text>
+                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : userTier === 'pro' ? 'Passa a Elite' : 'Attiva Pro ora'}</Text>
+                      <Text style={st.lockedFullSub}>{userTier === 'pro' ? 'Sblocca tutti i Top Picks' : 'Non perdere questa quota'}</Text>
                     </TouchableOpacity>
                   </Animated.View>
                 </View>

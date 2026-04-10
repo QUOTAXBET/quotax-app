@@ -85,8 +85,13 @@ export default function SchedineAIScreen() {
   };
 
   const canSeeCard = (index: number): boolean => {
+    // Elite: unlimited
     if (userTier === 'premium') return true;
-    if (userTier === 'free') return index < 3;
+    // Pro: unlimited schedine
+    if (userTier === 'pro') return true;
+    // Free: 2 schedine settimanali
+    if (userTier === 'free') return index < 2;
+    // Guest: 1 schedina
     return index < 1;
   };
 

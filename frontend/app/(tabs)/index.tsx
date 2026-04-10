@@ -155,7 +155,17 @@ export default function PronosticiScreen() {
         <View style={s.content}>
           {matches.map((match, index) => {
             const pred = predictions[match.match_id];
-            const shouldLock = isPremium ? false : !isAuthenticated ? (index % 10 >= 3) : (index % 5 >= 3);
+            // NEW TIER GATING:
+            // Guest: only 1 pronostico visible (without analysis)
+            // Free: ~3 visible (without full analysis)
+            // Pro: all visible with full analysis
+            // Elite (premium): all visible with everything
+            const userTier = !isAuthenticated ? 'guest' : (user?.subscription_tier || 'free');
+            const isElite = userTier === 'premium';
+            const isPro = userTier === 'pro' || isElite;
+            const shouldLock = userTier === 'guest' ? index >= 1 : userTier === 'free' ? index >= 3 : false;
+            const showAnalysis = isPro; // Only Pro+ see full AI analysis
+            const showConfidence = isPro; // Only Pro+ see affidabilità %
             const selected = selections.find(sel => sel.matchId === match.match_id);
             const matchDate = new Date(match.match_date);
 
@@ -218,7 +228,7 @@ export default function PronosticiScreen() {
                   })}
                 </View>
 
-                {/* AI Prediction - Teaser (free) vs Full (premium) */}
+                {/* AI Prediction - Gated by tier */}
                 {pred && !shouldLock && (
                   <View style={s.prediction}>
                     <View style={s.predHeader}>
@@ -226,24 +236,28 @@ export default function PronosticiScreen() {
                         <Ionicons name="analytics" size={14} color={colors.primary} />
                         <Text style={s.predTitle}>Pronostico AI</Text>
                       </View>
-                      <View style={[s.riskBadge, { backgroundColor: getRiskColor(pred.risk_level) + '20' }]}>
-                        <View style={[s.riskDot, { backgroundColor: getRiskColor(pred.risk_level) }]} />
-                        <Text style={[s.riskText, { color: getRiskColor(pred.risk_level) }]}>{getRiskLabel(pred.risk_level)}</Text>
-                      </View>
+                      {showConfidence && (
+                        <View style={[s.riskBadge, { backgroundColor: getRiskColor(pred.risk_level) + '20' }]}>
+                          <View style={[s.riskDot, { backgroundColor: getRiskColor(pred.risk_level) }]} />
+                          <Text style={[s.riskText, { color: getRiskColor(pred.risk_level) }]}>{getRiskLabel(pred.risk_level)}</Text>
+                        </View>
+                      )}
                     </View>
                     <View style={s.predOutcomeRow}>
                       <Text style={s.predLabel}>Scelta:</Text>
                       <Text style={s.predOutcome}>{getOutcomeLabel(pred.predicted_outcome, match.home_team, match.away_team)}</Text>
                       <View style={s.predOddsBox}><Text style={s.predOdds}>@{pred.odds}</Text></View>
                     </View>
-                    <View style={s.confRow}>
-                      <Text style={s.confLabel}>Affidabilità</Text>
-                      <View style={s.confBar}><View style={[s.confFill, { width: `${pred.confidence}%`, backgroundColor: getRiskColor(pred.risk_level) }]} /></View>
-                      <Text style={[s.confValue, { color: getRiskColor(pred.risk_level) }]}>{pred.confidence}%</Text>
-                    </View>
+                    {showConfidence && (
+                      <View style={s.confRow}>
+                        <Text style={s.confLabel}>Affidabilità</Text>
+                        <View style={s.confBar}><View style={[s.confFill, { width: `${pred.confidence}%`, backgroundColor: getRiskColor(pred.risk_level) }]} /></View>
+                        <Text style={[s.confValue, { color: getRiskColor(pred.risk_level) }]}>{pred.confidence}%</Text>
+                      </View>
+                    )}
 
-                    {/* Teaser vs Full motivation */}
-                    {isPremium ? (
+                    {/* Full analysis for Pro+, Teaser for Free/Guest */}
+                    {showAnalysis ? (
                       pred.ai_motivation && <Text style={s.motivation}>{pred.ai_motivation}</Text>
                     ) : (
                       <TouchableOpacity style={s.teaserBlock} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
@@ -293,7 +307,8 @@ export default function PronosticiScreen() {
                     </Text>
                   </View>
                 </View>
-                {!isPremium && (
+                {/* FOMO CTA only on LOCKED cards */}
+                {shouldLock && (
                   <TouchableOpacity style={s.fomoCTA} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
                     <Ionicons name="flash" size={12} color={colors.gold} />
                     <Text style={s.fomoCTAText}>Non perdere questa quota</Text>

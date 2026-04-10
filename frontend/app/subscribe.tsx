@@ -121,27 +121,22 @@ export default function SubscribeScreen() {
           </Text>
         </Animated.View>
 
-        {trial?.available && (
-          <TouchableOpacity style={styles.trialBanner}>
-            <LinearGradient colors={[colors.gold, colors.goldDark]} style={styles.trialGradient}>
-              <Ionicons name="gift" size={24} color={colors.background} />
-              <Text style={styles.trialText}>{trial.text}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+        {/* Tier comparison removed - trial info now inline on each plan */}
 
         <View style={styles.plansContainer}>
           {plans.map((plan) => {
             const isActive = user?.subscription_tier === plan.id;
+            const isElite = plan.id === 'premium';
+            const firstMonthPrice = plan.first_month_price;
             return (
               <View key={plan.id} style={[
                 styles.planCard,
                 plan.highlighted && styles.planCardHighlighted,
-                plan.id === 'premium' && styles.planCardPremium,
+                isElite && styles.planCardPremium,
                 isActive && styles.planCardActive
               ]}>
                 {plan.badge && (
-                  <View style={[styles.badge, plan.id === 'premium' ? styles.badgePremium : styles.badgePro]}>
+                  <View style={[styles.badge, isElite ? styles.badgePremium : styles.badgePro]}>
                     <Text style={styles.badgeText}>{plan.badge}</Text>
                   </View>
                 )}
@@ -150,17 +145,33 @@ export default function SubscribeScreen() {
                 
                 <View style={styles.priceRow}>
                   <Text style={styles.priceSymbol}>{'\u20AC'}</Text>
-                  <Text style={[styles.priceValue, plan.highlighted && styles.priceValueHighlighted, plan.id === 'premium' && styles.priceValuePremium]}>
+                  <Text style={[styles.priceValue, plan.highlighted && styles.priceValueHighlighted, isElite && styles.priceValuePremium]}>
                     {plan.price.toFixed(2).split('.')[0]}
                   </Text>
                   <Text style={styles.priceCents}>,{plan.price.toFixed(2).split('.')[1]}</Text>
                   <Text style={styles.pricePeriod}>/{plan.period}</Text>
                 </View>
 
+                {/* First month discount for Elite */}
+                {firstMonthPrice && !isActive && (
+                  <View style={styles.firstMonthBanner}>
+                    <Ionicons name="pricetag" size={14} color={colors.gold} />
+                    <Text style={styles.firstMonthText}>Primo mese a solo €{firstMonthPrice.toFixed(2)}</Text>
+                  </View>
+                )}
+
+                {/* Trial banner for Pro */}
+                {plan.trial && !isActive && (
+                  <View style={styles.trialInline}>
+                    <Ionicons name="gift" size={14} color={colors.primary} />
+                    <Text style={styles.trialInlineText}>{plan.trial.text}</Text>
+                  </View>
+                )}
+
                 <View style={styles.featuresList}>
                   {plan.features.map((feature: string, idx: number) => (
                     <View key={idx} style={styles.featureRow}>
-                      <Ionicons name="checkmark-circle" size={18} color={plan.id === 'premium' ? colors.gold : plan.highlighted ? colors.primary : colors.textSecondary} />
+                      <Ionicons name="checkmark-circle" size={18} color={isElite ? colors.gold : plan.highlighted ? colors.primary : colors.textSecondary} />
                       <Text style={styles.featureText}>{feature}</Text>
                     </View>
                   ))}
@@ -170,7 +181,7 @@ export default function SubscribeScreen() {
                   style={[
                     styles.subscribeBtn,
                     plan.highlighted && styles.subscribeBtnHighlighted,
-                    plan.id === 'premium' && styles.subscribeBtnPremium,
+                    isElite && styles.subscribeBtnPremium,
                     isActive && styles.subscribeBtnActive,
                   ]}
                   onPress={() => !isActive && handlePlanSelect(plan)}
@@ -181,16 +192,16 @@ export default function SubscribeScreen() {
                   ) : (
                     <Text style={[
                       styles.subscribeBtnText,
-                      (plan.highlighted || plan.id === 'premium') && styles.subscribeBtnTextDark,
+                      (plan.highlighted || isElite) && styles.subscribeBtnTextDark,
                       isActive && styles.subscribeBtnTextActive,
                     ]}>
-                      {isActive ? 'Piano Attivo' : plan.id === 'premium' ? 'Passa a Elite' : plan.id === 'pro' ? 'Attiva Pro ora' : 'Scegli Piano'}
+                      {isActive ? 'Piano Attivo' : isElite ? 'Passa a Elite' : plan.id === 'pro' ? 'Attiva Pro ora' : 'Scegli Piano'}
                     </Text>
                   )}
                 </TouchableOpacity>
 
-                {plan.id === 'premium' && !isActive && (
-                  <Text style={styles.limitedOffer}>Offerta limitata - risparmia il 40%</Text>
+                {isElite && !isActive && firstMonthPrice && (
+                  <Text style={styles.limitedOffer}>Risparmia €{(plan.price - firstMonthPrice).toFixed(2)} il primo mese!</Text>
                 )}
               </View>
             );
@@ -313,6 +324,10 @@ const styles = StyleSheet.create({
   subscribeBtnTextDark: { color: colors.background },
   subscribeBtnTextActive: { color: colors.primary },
   limitedOffer: { color: colors.gold, fontSize: 11, textAlign: 'center', marginTop: 10, fontWeight: '600' },
+  firstMonthBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,215,0,0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)' },
+  firstMonthText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  trialInline: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,255,136,0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,255,136,0.2)' },
+  trialInlineText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   guaranteeSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 32, marginBottom: 12 },
   guaranteeText: { color: colors.textSecondary, fontSize: 13 },
   trustRow: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 16 },

@@ -88,7 +88,45 @@ async def get_subscription_plans():
     """Get available subscription plans"""
     return {
         "plans": SUBSCRIPTION_PLANS,
-        "trial": {"available": True, "text": "Prova 3 giorni a solo 1\u20ac", "days": 3, "price": 1.00}
+        "tiers": {
+            "guest": {
+                "name": "Ospite",
+                "pronostici": 1,
+                "pronostici_analisi": False,
+                "schedine": 1,
+                "top_picks": 0,
+                "description": "Accesso limitato"
+            },
+            "free": {
+                "name": "Free",
+                "pronostici": "limitati",
+                "pronostici_analisi": False,
+                "schedine": "2 a settimana",
+                "top_picks": 2,
+                "description": "Registrato gratis"
+            },
+            "pro": {
+                "name": "Pro",
+                "price": 9.99,
+                "pronostici": "completi",
+                "pronostici_analisi": True,
+                "schedine": "illimitate",
+                "top_picks": 2,
+                "top_picks_note": "Sugli altri: Passa a Elite",
+                "extras": ["Simulatore", "ROI tracking", "Grafico rendimento", "Affidabilità %"],
+                "trial": "Prova 3 giorni a solo €1"
+            },
+            "premium": {
+                "name": "Elite",
+                "price": 29.99,
+                "first_month_price": 19.99,
+                "pronostici": "completi",
+                "pronostici_analisi": True,
+                "schedine": "illimitate",
+                "top_picks": "tutti",
+                "extras": ["Value bets", "Notifiche push", "AI custom", "Report settimanale"]
+            }
+        }
     }
 
 

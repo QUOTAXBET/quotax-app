@@ -253,7 +253,7 @@ export default function PronosticiScreen() {
                           </Text>
                           <View style={s.teaserOverlay}>
                             <Ionicons name="lock-closed" size={14} color={colors.gold} />
-                            <Text style={s.teaserCta}>{isAuthenticated ? 'Sblocca con Premium' : 'Registrati per leggere'}</Text>
+                            <Text style={s.teaserCta}>Sblocca analisi AI</Text>
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -267,16 +267,39 @@ export default function PronosticiScreen() {
                     <View style={s.blurLines}><View style={[s.blurLine, { width: '75%' }]} /><View style={[s.blurLine, { width: '50%' }]} /><View style={[s.blurLine, { width: '85%' }]} /></View>
                     <View style={s.lockedOverlay}>
                       <Ionicons name="lock-closed" size={18} color={colors.gold} />
-                      <Text style={s.lockedTitle}>Pronostico Premium</Text>
-                      <Text style={s.lockedSub}>{isAuthenticated ? 'Sblocca con abbonamento' : 'Registrati gratis per sbloccare'}</Text>
+                      <Text style={s.lockedTitle}>{'🔒 PRONOSTICO PREMIUM'}</Text>
+                      <Text style={s.lockedHint}>{'💡 L\'AI rileva valore su questa partita'}</Text>
+                      <TouchableOpacity style={s.lockedCTABtn} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
+                        <Text style={s.lockedCTAText}>{isAuthenticated ? 'Sblocca analisi AI' : 'Registrati per sbloccare'}</Text>
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 )}
 
-                {/* FOMO */}
+                {/* Countdown + FOMO */}
                 <View style={s.fomoBar}>
                   <View style={s.fomoLeft}><Ionicons name="eye" size={12} color={colors.textMuted} /><Text style={s.fomoText}>{Math.floor(Math.random() * 25) + 10} stanno guardando</Text></View>
+                  <View style={s.countdownWrap}>
+                    <Ionicons name="time-outline" size={11} color={colors.primary} />
+                    <Text style={s.countdownText}>
+                      {(() => {
+                        const mins = differenceInMinutes(matchDate, new Date());
+                        if (mins <= 0) return 'LIVE';
+                        const hrs = differenceInHours(matchDate, new Date());
+                        if (hrs < 1) return `${mins}min`;
+                        if (hrs < 24) return `${hrs}h ${mins % 60}m`;
+                        return `${Math.floor(hrs / 24)}g ${hrs % 24}h`;
+                      })()}
+                    </Text>
+                  </View>
                 </View>
+                {!isPremium && (
+                  <TouchableOpacity style={s.fomoCTA} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
+                    <Ionicons name="flash" size={12} color={colors.gold} />
+                    <Text style={s.fomoCTAText}>Non perdere questa quota</Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.gold} />
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })}
@@ -445,11 +468,17 @@ const s = StyleSheet.create({
   blurLine: { height: 12, backgroundColor: colors.textMuted, borderRadius: 4 },
   lockedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(11,15,20,0.85)', borderRadius: 14, gap: 4 },
   lockedTitle: { color: colors.gold, fontSize: 14, fontWeight: '800' },
-  lockedSub: { color: colors.textMuted, fontSize: 11 },
+  lockedHint: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 2 },
+  lockedCTABtn: { marginTop: 10, backgroundColor: 'rgba(255,215,0,0.12)', paddingHorizontal: 18, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.25)' },
+  lockedCTAText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
   // FOMO
   fomoBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
   fomoLeft: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   fomoText: { color: colors.textMuted, fontSize: 10 },
+  countdownWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,255,136,0.08)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  countdownText: { color: colors.primary, fontSize: 10, fontWeight: '800' },
+  fomoCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,215,0,0.06)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  fomoCTAText: { color: colors.gold, fontSize: 11, fontWeight: '700' },
   // Schedina bar
   schedinaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 4 : 4 },
   schedinaBarInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },

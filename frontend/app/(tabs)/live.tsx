@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { opportunitiesAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { SkeletonTopPickCard } from '../../src/components/Skeleton';
 
 export default function TopPicksScreen() {
   const router = useRouter();
@@ -45,7 +46,14 @@ export default function TopPicksScreen() {
     return index === 0 ? 'full' : 'locked';
   };
 
-  if (loading) return <View style={st.loadingContainer}><ActivityIndicator size="large" color={colors.gold} /><Text style={st.loadingText}>Analisi opportunità in corso...</Text></View>;
+  if (loading) return (
+    <SafeAreaView style={st.container} edges={['top']}>
+      <View style={st.header}>
+        <View style={st.headerLeft}><Ionicons name="diamond" size={22} color={colors.gold} /><Text style={st.title}>Top Picks</Text></View>
+      </View>
+      <View style={{ padding: 16 }}><SkeletonTopPickCard /><SkeletonTopPickCard /><SkeletonTopPickCard /></View>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={st.container} edges={['top']}>
@@ -97,9 +105,10 @@ export default function TopPicksScreen() {
                   <Text style={st.edgeLabel}>Edge sul mercato</Text>
                   <Text style={st.edgePercent}>+{opp.edge_percentage}%</Text>
                 </View>
-                <View style={st.edgeBar}>
-                  <View style={[st.edgeFill, { width: `${Math.min(opp.edge_percentage * 4, 100)}%` }]} />
-                </View>
+                <TouchableOpacity style={st.edgeCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(userTier === 'guest' ? '/login' : '/subscribe'); }} activeOpacity={0.8}>
+                  <Text style={st.edgeCTAText}>Scopri il valore reale</Text>
+                  <Ionicons name="arrow-forward" size={12} color={colors.primary} />
+                </TouchableOpacity>
               </View>
 
               {/* Prediction content */}
@@ -151,8 +160,8 @@ export default function TopPicksScreen() {
                     <TouchableOpacity style={st.lockedCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/subscribe'); }} activeOpacity={0.8}>
                       <Ionicons name="lock-closed" size={16} color={colors.gold} />
                       <View style={st.lockedCTATextWrap}>
-                        <Text style={st.lockedCTATitle}>Analisi completa — Solo Premium</Text>
-                        <Text style={st.lockedCTASub}>Sblocca la spiegazione AI dettagliata</Text>
+                        <Text style={st.lockedCTATitle}>Scopri quanto potresti vincere</Text>
+                        <Text style={st.lockedCTASub}>Sblocca analisi AI completa</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={colors.gold} />
                     </TouchableOpacity>
@@ -168,8 +177,8 @@ export default function TopPicksScreen() {
                   <Animated.View style={[st.lockedOverlayFull, { transform: [{ scale: pulseAnim }] }]}>
                     <TouchableOpacity style={st.lockedFullCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(userTier === 'guest' ? '/login' : '/subscribe'); }} activeOpacity={0.8}>
                       <Ionicons name="diamond" size={24} color={colors.gold} />
-                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : 'Top Pick Premium'}</Text>
-                      <Text style={st.lockedFullSub}>{userTier === 'guest' ? 'Sblocca con registrazione' : 'Sblocca con abbonamento'}</Text>
+                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : 'Attiva Pro ora'}</Text>
+                      <Text style={st.lockedFullSub}>Non perdere questa quota</Text>
                     </TouchableOpacity>
                   </Animated.View>
                 </View>
@@ -237,8 +246,8 @@ const st = StyleSheet.create({
   edgeContent: { flex: 1 },
   edgeLabel: { color: colors.textSecondary, fontSize: 11, marginBottom: 2 },
   edgePercent: { color: colors.primary, fontSize: 22, fontWeight: '900' },
-  edgeBar: { width: 50, height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
-  edgeFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
+  edgeCTA: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,255,136,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  edgeCTAText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
   // Prediction
   predBox: { backgroundColor: colors.background, borderRadius: 16, padding: 14, marginBottom: 12 },
   predRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },

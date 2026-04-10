@@ -10,8 +10,10 @@ import { schedineAPI, publicAPI, badgesAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { Schedina } from '../../src/types';
 import BadgeUnlockPopup from '../../src/components/BadgeUnlockPopup';
+import { SkeletonSchedinaCard } from '../../src/components/Skeleton';
 
 type FilterTab = 'all' | 'single' | 'multi';
+type SubTab = 'disponibili' | 'archivio';
 
 export default function SchedineAIScreen() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function SchedineAIScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('disponibili');
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followingId, setFollowingId] = useState<string | null>(null);
   const [badgePopup, setBadgePopup] = useState<any>(null);
@@ -88,12 +91,23 @@ export default function SchedineAIScreen() {
   };
 
   const filteredSchedine = schedine.filter(sch => {
-    if (activeTab === 'single') return sch.matches.length === 1;
-    if (activeTab === 'multi') return sch.matches.length > 1;
+    // Main tab filter
+    if (activeTab === 'single') { if (sch.matches.length !== 1) return false; }
+    if (activeTab === 'multi') { if (sch.matches.length <= 1) return false; }
+    // Sub tab filter: Disponibili = pending, Archivio = won or lost
+    if (activeSubTab === 'disponibili') return sch.status === 'pending';
+    if (activeSubTab === 'archivio') return sch.status === 'won' || sch.status === 'lost';
     return true;
   });
 
-  if (loading) return <View style={st.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /><Text style={st.loadingText}>Caricamento schedine AI...</Text></View>;
+  if (loading) return (
+    <SafeAreaView style={st.container} edges={['top']}>
+      <View style={st.header}>
+        <View style={st.headerLeft}><Ionicons name="layers" size={22} color={colors.primary} /><Text style={st.title}>Schedine AI</Text></View>
+      </View>
+      <View style={{ padding: 20 }}><SkeletonSchedinaCard /><SkeletonSchedinaCard /><SkeletonSchedinaCard /></View>
+    </SafeAreaView>
+  );
 
   const monthWon = schedine.filter(s => s.status === 'won').length;
   const monthTotal = schedine.length;
@@ -132,6 +146,28 @@ export default function SchedineAIScreen() {
           >
             <Ionicons name={tab.icon as any} size={14} color={activeTab === tab.key ? colors.background : colors.textMuted} />
             <Text style={[st.tabText, activeTab === tab.key && st.tabTextActive]}>{tab.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Subtabs: Disponibili / Archivio */}
+      <View style={st.subTabRow}>
+        {([
+          { key: 'disponibili', label: 'Disponibili', icon: 'time' },
+          { key: 'archivio', label: 'Archivio', icon: 'archive' },
+        ] as { key: SubTab; label: string; icon: string }[]).map(sub => (
+          <TouchableOpacity
+            key={sub.key}
+            style={[st.subTab, activeSubTab === sub.key && st.subTabActive]}
+            onPress={() => { Haptics.selectionAsync(); setActiveSubTab(sub.key); }}
+          >
+            <Ionicons name={sub.icon as any} size={13} color={activeSubTab === sub.key ? colors.primary : colors.textMuted} />
+            <Text style={[st.subTabText, activeSubTab === sub.key && st.subTabTextActive]}>{sub.label}</Text>
+            {sub.key === 'disponibili' && (
+              <View style={st.subTabCount}>
+                <Text style={st.subTabCountText}>{schedine.filter(s => s.status === 'pending').length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </View>
@@ -266,6 +302,14 @@ const st = StyleSheet.create({
   tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
   tabTextActive: { color: colors.background, fontWeight: '700' },
+  // Sub Tab Row
+  subTabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 10, gap: 6 },
+  subTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8, borderRadius: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
+  subTabActive: { borderColor: colors.primary, backgroundColor: 'rgba(0,255,136,0.06)' },
+  subTabText: { color: colors.textMuted, fontSize: 11, fontWeight: '600' },
+  subTabTextActive: { color: colors.primary, fontWeight: '700' },
+  subTabCount: { backgroundColor: colors.primary, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  subTabCountText: { color: colors.background, fontSize: 9, fontWeight: '800' },
   emptyState: { alignItems: 'center', paddingVertical: 48, gap: 12 },
   emptyText: { color: colors.textMuted, fontSize: 14 },
   scrollContent: { padding: 20, paddingTop: 4 },

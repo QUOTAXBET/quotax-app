@@ -43,8 +43,13 @@ Sport filter tabs → Match list → AI Predictions → Bet simulator modal
 - Landing Page: No-scroll, animated count-ups, win carousel, LIVE banner, CTA
 - Onboarding: 3-step flow (Obiettivo, Rischio, Sport) with haptic feedback
 - Pronostici: Haptic + glow on odds, Teaser vs Premium AI blocks, improved cards
-- Schedine AI: Filter tabs (Tutte/Singole/Multiple), "Segui questa schedina" button
-- Top Picks: Prominent Edge % banner on every card
+- Pronostici: Skeleton loaders, countdown timer, exact CTAs ("Sblocca analisi AI", "Non perdere questa quota")
+- Pronostici: Locked cards show "🔒 PRONOSTICO PREMIUM" + "💡 L'AI rileva valore..."
+- Schedine AI: Filter tabs (Tutte/Singole/Multiple), Subtabs (Disponibili/Archivio), "Segui questa schedina"
+- Schedine AI: Skeleton loaders, count badge on Disponibili subtab
+- Top Picks: Prominent Edge % banner, "Scopri il valore reale" CTA, skeleton loaders
+- Top Picks: Locked cards show "Attiva Pro ora" / "Non perdere questa quota"
+- Subscribe: CTA buttons say "Attiva Pro ora" (Pro) / "Passa a Elite" (Premium)
 - All animations: Haptics, glow effects, pulse CTA, progress bars
 
 ## Status

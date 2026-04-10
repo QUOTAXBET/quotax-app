@@ -184,7 +184,7 @@ export default function SubscribeScreen() {
                       (plan.highlighted || plan.id === 'premium') && styles.subscribeBtnTextDark,
                       isActive && styles.subscribeBtnTextActive,
                     ]}>
-                      {isActive ? 'Piano Attivo' : 'Scegli Piano'}
+                      {isActive ? 'Piano Attivo' : plan.id === 'premium' ? 'Passa a Elite' : plan.id === 'pro' ? 'Attiva Pro ora' : 'Scegli Piano'}
                     </Text>
                   )}
                 </TouchableOpacity>

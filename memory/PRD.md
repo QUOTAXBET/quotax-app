@@ -57,3 +57,14 @@ Sport filter tabs → Match list → AI Predictions → Bet simulator modal
 - Auth via Emergent Google OAuth (functional)
 - Subscription is simulated (no real payment)
 - NO fake money/wallet (uses "Followed Bets" tracking)
+
+## Backend Architecture (Refactored v2.1 — 64 lines server.py)
+- `server.py` — App setup, router includes, middleware
+- `routes/` — 10 modular route files (auth, matches, bets, social, gamification, notifications, elite, opportunities, emails, public)
+- `services/` — database.py, mock_data.py, auth_helpers.py, email_service.py, constants.py
+- `models/schemas.py` — Pydantic models
+
+## Gamification (10 Badges + Prize)
+- community, first_follow, first_win, ten_follows, streak_3, streak_5, top_pick_win, streak_7, profit_master, elite_user
+- Prize: "1 mese gratis" when all 10 badges completed
+- Progress bar + points system on Profile page

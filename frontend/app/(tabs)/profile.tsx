@@ -9,14 +9,16 @@ import { badgesAPI, leaderboardAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 
 const BADGE_DEFINITIONS_FALLBACK = [
-  { badge_id: 'community', name: 'Membro della Community', description: 'Ti sei registrato su EdgeBet!', icon: 'people', category: 'beginner' },
-  { badge_id: 'first_follow', name: 'Prima Schedina', description: 'Hai seguito la tua prima schedina!', icon: 'bookmark', category: 'beginner' },
-  { badge_id: 'ten_follows', name: 'Collezionista', description: 'Hai seguito 10 schedine!', icon: 'layers', category: 'intermediate' },
-  { badge_id: 'streak_3', name: 'Serie Vincente', description: '3 previsioni corrette di fila!', icon: 'flame', category: 'intermediate' },
-  { badge_id: 'streak_7', name: 'Inarrestabile', description: '7 giorni consecutivi di utilizzo!', icon: 'rocket', category: 'advanced' },
-  { badge_id: 'top_pick_win', name: 'Occhio d\'Aquila', description: 'Un Top Pick che hai seguito ha vinto!', icon: 'eye', category: 'intermediate' },
-  { badge_id: 'elite_user', name: 'Membro Elite', description: 'Hai usato la funzione Elite AI!', icon: 'diamond', category: 'elite' },
-  { badge_id: 'profit_master', name: 'Re del Profitto', description: 'ROI personale sopra il 20%!', icon: 'trending-up', category: 'advanced' },
+  { badge_id: 'community', name: 'Membro della Community', description: 'Ti sei registrato su EdgeBet!', icon: 'people', category: 'beginner', points: 50 },
+  { badge_id: 'first_follow', name: 'Prima Schedina', description: 'Hai seguito la tua prima schedina!', icon: 'bookmark', category: 'beginner', points: 100 },
+  { badge_id: 'first_win', name: 'Prima Vittoria', description: 'La tua prima previsione corretta!', icon: 'trophy', category: 'beginner', points: 150 },
+  { badge_id: 'ten_follows', name: 'Collezionista', description: 'Hai seguito 10 schedine!', icon: 'layers', category: 'intermediate', points: 200 },
+  { badge_id: 'streak_3', name: 'Serie Vincente', description: '3 previsioni corrette di fila!', icon: 'flame', category: 'intermediate', points: 250 },
+  { badge_id: 'streak_5', name: 'In Fiamme', description: '5 previsioni corrette consecutive!', icon: 'bonfire', category: 'intermediate', points: 350 },
+  { badge_id: 'top_pick_win', name: 'Occhio d\'Aquila', description: 'Un Top Pick che hai seguito ha vinto!', icon: 'eye', category: 'intermediate', points: 300 },
+  { badge_id: 'streak_7', name: 'Inarrestabile', description: '7 giorni consecutivi di utilizzo!', icon: 'rocket', category: 'advanced', points: 400 },
+  { badge_id: 'profit_master', name: 'Re del Profitto', description: 'ROI personale sopra il 20%!', icon: 'trending-up', category: 'advanced', points: 500 },
+  { badge_id: 'elite_user', name: 'Membro Elite', description: 'Hai usato la funzione Elite AI!', icon: 'diamond', category: 'elite', points: 500 },
 ];
 
 export default function ProfileScreen() {
@@ -179,23 +181,39 @@ export default function ProfileScreen() {
 
         {/* Badges Grid */}
         {activeSection === 'badges' && (
-          <View style={st.badgesGrid}>
-            {definitions.map((def) => {
-              const earned = badges.find((b: any) => b.badge_id === def.badge_id);
-              const isNew = earned?.new;
-              return (
-                <View key={def.badge_id} style={[st.badgeCard, earned && st.badgeCardEarned, isNew && st.badgeCardNew]}>
-                  <View style={[st.badgeIcon, earned ? st.badgeIconEarned : st.badgeIconLocked]}>
-                    <Ionicons name={def.icon as any} size={22} color={earned ? (def.category === 'elite' ? colors.gold : colors.primary) : colors.textMuted} />
+          <View>
+            {/* Badge Progress & Prize Banner */}
+            <View style={st.prizeCard}>
+              <View style={st.prizeHeader}>
+                <Ionicons name="gift" size={20} color={colors.gold} />
+                <Text style={st.prizeTitle}>Completa tutti i badge</Text>
+              </View>
+              <Text style={st.prizeReward}>Premio: 1 mese gratis di Pro!</Text>
+              <View style={st.progressBarBg}>
+                <View style={[st.progressBarFill, { width: `${Math.min((badges.length / definitions.length) * 100, 100)}%` }]} />
+              </View>
+              <Text style={st.progressText}>{badges.length}/{definitions.length} badge completati</Text>
+            </View>
+
+            <View style={st.badgesGrid}>
+              {definitions.map((def) => {
+                const earned = badges.find((b: any) => b.badge_id === def.badge_id);
+                const isNew = earned?.new;
+                return (
+                  <View key={def.badge_id} style={[st.badgeCard, earned && st.badgeCardEarned, isNew && st.badgeCardNew]}>
+                    <View style={[st.badgeIcon, earned ? st.badgeIconEarned : st.badgeIconLocked]}>
+                      <Ionicons name={def.icon as any} size={22} color={earned ? (def.category === 'elite' ? colors.gold : colors.primary) : colors.textMuted} />
+                    </View>
+                    <Text style={[st.badgeName, !earned && st.badgeNameLocked]}>{def.name}</Text>
+                    <Text style={[st.badgeDesc, !earned && st.badgeDescLocked]} numberOfLines={2}>{def.description}</Text>
+                    {def.points && <Text style={st.badgePoints}>{def.points} pts</Text>}
+                    {earned && <View style={st.earnedBadge}><Ionicons name="checkmark-circle" size={12} color={colors.primary} /><Text style={st.earnedText}>Ottenuto</Text></View>}
+                    {!earned && <View style={st.lockedBadge}><Ionicons name="lock-closed" size={10} color={colors.textMuted} /><Text style={st.lockedText}>Bloccato</Text></View>}
+                    {isNew && <View style={st.newTag}><Text style={st.newTagText}>NUOVO!</Text></View>}
                   </View>
-                  <Text style={[st.badgeName, !earned && st.badgeNameLocked]}>{def.name}</Text>
-                  <Text style={[st.badgeDesc, !earned && st.badgeDescLocked]} numberOfLines={2}>{def.description}</Text>
-                  {earned && <View style={st.earnedBadge}><Ionicons name="checkmark-circle" size={12} color={colors.primary} /><Text style={st.earnedText}>Ottenuto</Text></View>}
-                  {!earned && <View style={st.lockedBadge}><Ionicons name="lock-closed" size={10} color={colors.textMuted} /><Text style={st.lockedText}>Bloccato</Text></View>}
-                  {isNew && <View style={st.newTag}><Text style={st.newTagText}>NUOVO!</Text></View>}
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -278,6 +296,13 @@ const st = StyleSheet.create({
   toggleText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   toggleTextActive: { color: colors.background, fontWeight: '700' },
   // Badges
+  prizeCard: { marginHorizontal: 20, marginBottom: 14, backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  prizeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  prizeTitle: { color: colors.gold, fontSize: 15, fontWeight: '800' },
+  prizeReward: { color: colors.textSecondary, fontSize: 12, marginBottom: 10 },
+  progressBarBg: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: colors.gold, borderRadius: 4 },
+  progressText: { color: colors.textMuted, fontSize: 11, marginTop: 6, textAlign: 'center' },
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 16, gap: 10 },
   badgeCard: { width: '47%', backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, alignItems: 'center', gap: 6, position: 'relative' },
   badgeCardEarned: { borderColor: 'rgba(0,255,136,0.2)' },
@@ -289,6 +314,7 @@ const st = StyleSheet.create({
   badgeNameLocked: { color: colors.textMuted },
   badgeDesc: { color: colors.textSecondary, fontSize: 10, textAlign: 'center', lineHeight: 14 },
   badgeDescLocked: { color: colors.textMuted, opacity: 0.5 },
+  badgePoints: { color: colors.gold, fontSize: 9, fontWeight: '700' },
   earnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   earnedText: { color: colors.primary, fontSize: 9, fontWeight: '700' },
   lockedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },

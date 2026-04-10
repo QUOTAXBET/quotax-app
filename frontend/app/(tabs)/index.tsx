@@ -8,7 +8,8 @@ import { useAuth } from '../../src/context/AuthContext';
 import { matchesAPI, socialAPI, notificationsAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import SportFilter from '../../src/components/SportFilter';
-import { format } from 'date-fns';
+import { SkeletonMatchCard } from '../../src/components/Skeleton';
+import { format, differenceInMinutes, differenceInHours } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 interface Selection { matchId: string; betType: string; odds: number; label: string; matchLabel: string; }
@@ -97,7 +98,12 @@ export default function PronosticiScreen() {
   const getRiskLabel = (risk: string) => risk === 'low' ? 'SICURO' : risk === 'medium' ? 'MEDIO' : 'RISCHIOSO';
   const getOutcomeLabel = (o: string, h: string, a: string) => o === 'home' ? h : o === 'away' ? a : 'Pareggio';
 
-  if (loading) return <View style={s.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /><Text style={s.loadingText}>Caricamento pronostici...</Text></View>;
+  if (loading) return (
+    <SafeAreaView style={s.container} edges={['top']}>
+      <View style={s.header}><View style={s.logo}><Ionicons name="analytics" size={22} color={colors.primary} /><Text style={s.logoText}>Pronostici</Text></View></View>
+      <View style={s.content}><SkeletonMatchCard /><SkeletonMatchCard /><SkeletonMatchCard /></View>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>

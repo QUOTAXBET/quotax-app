@@ -304,6 +304,8 @@ async def create_session(request: Request, response: Response):
                 {"user_id": user_id},
                 {"$set": {"name": name, "picture": picture}}
             )
+            # Returning user — check if upsell email should be sent
+            await _check_upsell_email(user_id, existing_user)
         else:
             user_id = f"user_{uuid.uuid4().hex[:12]}"
             new_user = {
@@ -320,6 +322,8 @@ async def create_session(request: Request, response: Response):
                 "created_at": datetime.now(timezone.utc)
             }
             await db.users.insert_one(new_user)
+            # New user — send welcome email automatically
+            await _queue_email("welcome", email, name, user_id)
         
         session_token = emergent_session_token or f"session_{uuid.uuid4().hex}"
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
@@ -1673,6 +1677,88 @@ async def get_email_history(limit: int = 20):
     cursor = db.sent_emails.find({}, {"_id": 0}).sort("sent_at", -1).limit(limit)
     emails = await cursor.to_list(length=limit)
     return {"emails": emails, "count": len(emails)}
+
+
+# ==================== AUTO EMAIL HELPERS ====================
+
+async def _queue_email(template_id: str, to_email: str, user_name: str, user_id: str):
+    """Queue/send an automated email (mock - stores in DB, ready for real service)"""
+    template = EMAIL_TEMPLATES.get(template_id)
+    if not template:
+        return
+
+    email_record = {
+        "email_id": str(uuid.uuid4()),
+        "template_id": template_id,
+        "user_id": user_id,
+        "to_email": to_email,
+        "user_name": user_name,
+        "subject": template["subject"],
+        "trigger": template["trigger"],
+        "status": "queued",
+        "queued_at": datetime.now(timezone.utc).isoformat(),
+        "sent_at": None,
+        "auto": True,
+    }
+    await db.sent_emails.insert_one(email_record)
+    logger.info(f"[EMAIL AUTO] {template_id} queued for {to_email} ({user_name})")
+
+    # In production, this would call SendGrid/Mailgun here
+    # For now, mark as "sent" immediately (simulation)
+    await db.sent_emails.update_one(
+        {"email_id": email_record["email_id"]},
+        {"$set": {"status": "sent", "sent_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    logger.info(f"[EMAIL AUTO] {template_id} sent to {to_email}")
+
+
+async def _check_upsell_email(user_id: str, user_doc: dict):
+    """Check if upsell email should be sent to returning free user"""
+    if user_doc.get("subscription_tier") not in ["free", None]:
+        return
+
+    created_at = user_doc.get("created_at")
+    if not created_at:
+        return
+
+    # Check if user registered more than 3 days ago
+    if isinstance(created_at, str):
+        created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+
+    days_since = (datetime.now(timezone.utc) - created_at).days
+    if days_since < 3:
+        return
+
+    # Check if upsell was already sent
+    existing = await db.sent_emails.find_one({
+        "user_id": user_id,
+        "template_id": "upsell",
+        "auto": True
+    })
+    if existing:
+        return
+
+    email = user_doc.get("email")
+    name = user_doc.get("name", "Utente")
+    if email:
+        await _queue_email("upsell", email, name, user_id)
+
+
+# Endpoint to check email queue status (for admin/debug)
+@api_router.get("/emails/queue")
+async def get_email_queue():
+    """Get auto-sent email queue with status"""
+    cursor = db.sent_emails.find({"auto": True}, {"_id": 0}).sort("queued_at", -1).limit(50)
+    emails = await cursor.to_list(length=50)
+    stats = {
+        "total_sent": await db.sent_emails.count_documents({"auto": True, "status": "sent"}),
+        "total_queued": await db.sent_emails.count_documents({"auto": True, "status": "queued"}),
+        "welcome_sent": await db.sent_emails.count_documents({"auto": True, "template_id": "welcome"}),
+        "upsell_sent": await db.sent_emails.count_documents({"auto": True, "template_id": "upsell"}),
+        "reminder_sent": await db.sent_emails.count_documents({"auto": True, "template_id": "reminder"}),
+        "elite_sent": await db.sent_emails.count_documents({"auto": True, "template_id": "elite"}),
+    }
+    return {"emails": emails, "stats": stats}
 
 
 # ==================== ROOT ====================

@@ -163,11 +163,6 @@ export default function ProfileScreen() {
             <Text style={st.actionBtnText}>Impostazioni Notifiche</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={st.actionBtn} onPress={() => router.push('/emails')} activeOpacity={0.7}>
-            <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
-            <Text style={st.actionBtnText}>Email Marketing</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </TouchableOpacity>
         </View>
 
         {/* Section Toggle */}

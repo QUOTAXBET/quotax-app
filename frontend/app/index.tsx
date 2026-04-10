@@ -1,360 +1,186 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../src/context/AuthContext';
 import { publicAPI, socialAPI } from '../src/utils/api';
-import { colors } from '../src/utils/theme';
-import { PlatformStats, Schedina, SocialActivity } from '../src/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const C = { bg: '#0B0F14', card: '#1A2332', green: '#00FF88', gold: '#FFD700', red: '#FF4D4D', text: '#FFF', sub: '#9CA3AF', muted: '#6B7280', border: '#2A3847' };
 
-// Animated counter component
-function AnimatedCounter({ value, prefix = '', suffix = '', style }: { value: number; prefix?: string; suffix?: string; style?: any }) {
-  const animVal = useRef(new Animated.Value(0)).current;
-  const [display, setDisplay] = useState('0');
+const WINS = [
+  { amount: '+€1.039', detail: 'Quota @20.79 · Puntata €50' },
+  { amount: '+€482', detail: 'Quota @9.64 · Puntata €50' },
+  { amount: '+€240', detail: 'Quota @4.80 · Puntata €50' },
+  { amount: '+€1.580', detail: 'Quota @31.60 · Puntata €50' },
+];
 
+function CountUp({ to, prefix, suffix, style }: { to: number; prefix?: string; suffix?: string; style?: any }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  const [val, setVal] = useState('0');
   useEffect(() => {
-    animVal.setValue(0);
-    Animated.timing(animVal, {
-      toValue: value,
-      duration: 1500,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-
-    const listener = animVal.addListener(({ value: v }) => {
-      if (Number.isInteger(value)) {
-        setDisplay(Math.round(v).toString());
-      } else {
-        setDisplay(v.toFixed(1));
-      }
-    });
-    return () => animVal.removeListener(listener);
-  }, [value]);
-
-  return <Text style={style}>{prefix}{display}{suffix}</Text>;
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: to, duration: 1500, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    const id = anim.addListener(({ value }) => setVal(Number.isInteger(to) ? Math.round(value).toString() : value.toFixed(1)));
+    return () => anim.removeListener(id);
+  }, [to]);
+  return <Text style={style}>{prefix}{val}{suffix}</Text>;
 }
 
-export default function HomePage() {
+export default function LandingPage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [schedine, setSchedine] = useState<Schedina[]>([]);
-  const [social, setSocial] = useState<SocialActivity | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [social, setSocial] = useState<any>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
 
-  // Animations
   const liveBlink = useRef(new Animated.Value(1)).current;
-  const ctaPulse = useRef(new Animated.Value(0)).current;
-  const arrowX = useRef(new Animated.Value(0)).current;
+  const ctaPulse = useRef(new Animated.Value(1)).current;
+  const carouselAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      router.replace('/(tabs)');
-      return;
-    }
+    if (isAuthenticated && !authLoading) { router.replace('/(tabs)'); return; }
+    checkOnboarding();
     fetchData();
-    startAnimations();
+    startAnims();
   }, [isAuthenticated, authLoading]);
 
-  const startAnimations = () => {
-    // LIVE blink (red dot)
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(liveBlink, { toValue: 0.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(liveBlink, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // CTA pulse shadow
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(ctaPulse, { toValue: 1, duration: 1000, useNativeDriver: false }),
-        Animated.timing(ctaPulse, { toValue: 0, duration: 1000, useNativeDriver: false }),
-      ])
-    ).start();
-
-    // Arrow loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(arrowX, { toValue: 6, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(arrowX, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
+  const checkOnboarding = async () => {
+    try {
+      const done = await AsyncStorage.getItem('onboarding_done');
+      // Onboarding is optional - user can skip
+    } catch (e) {}
   };
 
   const fetchData = async () => {
     try {
-      const [statsData, schedineData, socialData] = await Promise.all([
-        publicAPI.getStats(),
-        publicAPI.getPreviewSchedule(),
-        socialAPI.getActivity(),
-      ]);
-      setStats(statsData);
-      setSchedine(schedineData);
-      setSocial(socialData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+      const [s, a] = await Promise.all([publicAPI.getStats(), socialAPI.getActivity()]);
+      setStats(s); setSocial(a);
+    } catch (e) {}
   };
 
-  const ctaShadowRadius = ctaPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [4, 18],
-  });
+  const startAnims = () => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(liveBlink, { toValue: 0.2, duration: 600, useNativeDriver: true }),
+      Animated.timing(liveBlink, { toValue: 1, duration: 600, useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(ctaPulse, { toValue: 1.03, duration: 1000, useNativeDriver: true }),
+      Animated.timing(ctaPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+    ])).start();
+    // Carousel autoplay
+    const interval = setInterval(() => {
+      setCarouselIdx(prev => (prev + 1) % WINS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  };
 
-  const ctaShadowOpacity = ctaPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
-
-  if (authLoading || loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+  const handleCTA = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/onboarding');
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logo}>
-            <Ionicons name="trending-up" size={28} color={colors.primary} />
-            <Text style={styles.logoText}>EdgeBet</Text>
+    <SafeAreaView style={st.container}>
+      <View style={st.inner}>
+        {/* Logo */}
+        <View style={st.logoRow}>
+          <Ionicons name="trending-up" size={28} color={C.green} />
+          <Text style={st.logoText}>EdgeBet</Text>
+        </View>
+
+        {/* Headline */}
+        <Text style={st.headline}>Pronostici basati su dati, non su opinioni</Text>
+        <Text style={st.subheadline}>L'algoritmo AI che analizza 40+ variabili per ogni evento</Text>
+
+        {/* Animated Stats */}
+        {stats && (
+          <View style={st.statsRow}>
+            <View style={st.statBox}>
+              <CountUp to={stats.roi_7d} prefix="+" suffix="%" style={st.statVal} />
+              <Text style={st.statLbl}>ROI</Text>
+            </View>
+            <View style={st.statBox}>
+              <CountUp to={stats.win_rate} suffix="%" style={st.statVal} />
+              <Text style={st.statLbl}>Win Rate</Text>
+            </View>
+            <View style={st.statBox}>
+              <CountUp to={stats.streak} style={st.statVal} />
+              <Text style={st.statLbl}>Serie Vinte</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
-            <Text style={styles.loginBtnText}>Accedi</Text>
+        )}
+
+        {/* Live Banner */}
+        {social?.activities?.[0] && (
+          <View style={st.liveBanner}>
+            <Animated.View style={[st.liveDot, { opacity: liveBlink }]} />
+            <Text style={st.liveLabel}>LIVE</Text>
+            <Text style={st.liveText} numberOfLines={1}>
+              {social.activities[0].user} ha vinto +€{social.activities[0].amount?.toFixed(0)} — {social.activities[0].time}
+            </Text>
+          </View>
+        )}
+
+        {/* Win Carousel */}
+        <View style={st.carousel}>
+          <View style={st.carouselCard}>
+            <Text style={st.carouselAmount}>{WINS[carouselIdx].amount}</Text>
+            <Text style={st.carouselDetail}>{WINS[carouselIdx].detail}</Text>
+          </View>
+          <View style={st.dots}>
+            {WINS.map((_, i) => <View key={i} style={[st.dot, i === carouselIdx && st.dotActive]} />)}
+          </View>
+        </View>
+
+        {/* CTA */}
+        <View style={st.ctaSection}>
+          <Animated.View style={{ transform: [{ scale: ctaPulse }], width: '100%' }}>
+            <TouchableOpacity onPress={handleCTA} activeOpacity={0.8} style={st.ctaWrap}>
+              <LinearGradient colors={[C.green, '#00CC6A']} style={st.ctaBtn}>
+                <Text style={st.ctaText}>Inizia Gratis — Registrati in 30 secondi</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={st.guestBtn}>
+            <Text style={st.guestText}>Continua come ospite</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Hero Section */}
-        <LinearGradient colors={['#0B0F14', '#111820', '#0B0F14']} style={styles.hero}>
-          <Text style={styles.heroTitle}>L'AI che batte i bookmaker</Text>
-          <Text style={styles.heroSubtitle}>Zero fuffaguru. Solo dati, probabilità e ROI verificabile.</Text>
-          
-          {/* Animated Stats */}
-          {stats && (
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <AnimatedCounter value={stats.roi_7d} prefix="+" suffix="%" style={styles.statValue} />
-                <Text style={styles.statLabel}>ROI 7 giorni</Text>
-              </View>
-              <View style={styles.statBox}>
-                <AnimatedCounter value={stats.win_rate} suffix="%" style={styles.statValue} />
-                <Text style={styles.statLabel}>Win Rate</Text>
-              </View>
-              <View style={styles.statBox}>
-                <AnimatedCounter value={stats.streak} style={styles.statValue} />
-                <Text style={styles.statLabel}>Serie Vinte</Text>
-              </View>
-            </View>
-          )}
-        </LinearGradient>
-
-        {/* Last Win Banner with LIVE badge */}
-        {stats?.last_win && (
-          <View style={styles.lastWinBanner}>
-            <View style={styles.liveBadge}>
-              <Animated.View style={[styles.liveDot, { opacity: liveBlink }]} />
-              <Text style={styles.liveText}>LIVE</Text>
-            </View>
-            <Text style={styles.lastWinText}>
-              Ultima vincita: <Text style={styles.lastWinAmount}>+€{stats.last_win.amount.toFixed(2)}</Text>
-            </Text>
-            <Text style={styles.lastWinTime}>{stats.last_win.time}</Text>
-          </View>
-        )}
-
-        {/* FOMO Counter */}
-        {social && (
-          <View style={styles.fomoBar}>
-            <View style={styles.fomoItem}>
-              <View style={styles.fomoLive} />
-              <Text style={styles.fomoText}>{social.viewing_now} utenti online</Text>
-            </View>
-            <Text style={styles.fomoText}>+{social.subscribed_today} iscritti oggi</Text>
-          </View>
-        )}
-
-        {/* Schedine Preview */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Schedine del Giorno</Text>
-            <TouchableOpacity onPress={() => router.push('/login')}>
-              <Text style={styles.sectionLink}>Sblocca tutte</Text>
-            </TouchableOpacity>
-          </View>
-
-          {schedine.map((sch, idx) => (
-            <View key={sch.schedina_id} style={[styles.schedina, sch.is_blurred && styles.schedinaBlurred]}>
-              <View style={styles.schedinaHeader}>
-                <View style={styles.schedinaStatus}>
-                  {sch.status === 'won' && <Ionicons name="checkmark-circle" size={18} color={colors.profit} />}
-                  {sch.status === 'lost' && <Ionicons name="close-circle" size={18} color={colors.loss} />}
-                  {sch.status === 'pending' && <Ionicons name="time" size={18} color={colors.pending} />}
-                  <Text style={[
-                    styles.schedinaStatusText,
-                    { color: sch.status === 'won' ? colors.profit : sch.status === 'lost' ? colors.loss : colors.pending }
-                  ]}>
-                    {sch.status === 'won' ? 'VINTA' : sch.status === 'lost' ? 'PERSA' : 'IN CORSO'}
-                  </Text>
-                </View>
-                <Text style={styles.schedinaOdds}>@{sch.total_odds.toFixed(2)}</Text>
-              </View>
-
-              {!sch.is_blurred ? (
-                <View style={styles.schedinaMatches}>
-                  {sch.matches.slice(0, 3).map((m, i) => (
-                    <View key={i} style={styles.matchRow}>
-                      <Text style={styles.matchTeams}>{m.home} - {m.away}</Text>
-                      <Text style={styles.matchBet}>{m.bet_type} @{m.odds}</Text>
-                    </View>
-                  ))}
-                  {sch.matches.length > 3 && (
-                    <Text style={styles.moreMatches}>+{sch.matches.length - 3} partite</Text>
-                  )}
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.blurOverlay} onPress={() => router.push('/login')} activeOpacity={0.8}>
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0, 255, 136, 0.08)', 'rgba(0, 255, 136, 0.15)']}
-                    style={styles.blurGradient}
-                  >
-                    <Ionicons name="lock-open" size={22} color={colors.primary} />
-                    <Text style={styles.blurText}>Sblocca questa schedina — Gratis</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-
-              <View style={styles.schedinaFooter}>
-                <Text style={styles.schedinaStake}>Puntata: €{sch.stake}</Text>
-                {sch.status === 'won' && (
-                  <Text style={styles.schedinaWin}>+€{sch.actual_win.toFixed(2)}</Text>
-                )}
-                {sch.status === 'pending' && (
-                  <Text style={styles.schdeinaPotential}>Potenziale: €{sch.potential_win.toFixed(2)}</Text>
-                )}
-              </View>
-
-              {sch.viewers && (
-                <View style={styles.viewersBar}>
-                  <Ionicons name="eye" size={12} color={colors.textMuted} />
-                  <Text style={styles.viewersText}>{sch.viewers} stanno guardando</Text>
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-
-        {/* CTA Section with pulse animation */}
-        <View style={styles.ctaSection}>
-          <Animated.View style={[styles.ctaShadow, {
-            shadowRadius: ctaShadowRadius,
-            shadowOpacity: ctaShadowOpacity,
-          }]}>
-            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.ctaGradient}>
-              <Text style={styles.ctaTitle}>Inizia a Vincere Oggi</Text>
-              <Text style={styles.ctaSubtitle}>Accesso gratuito a stats e performance</Text>
-              <TouchableOpacity style={styles.ctaButton} onPress={() => router.push('/login')}>
-                <Text style={styles.ctaButtonText}>Registrati Gratis</Text>
-                <Animated.View style={{ transform: [{ translateX: arrowX }] }}>
-                  <Ionicons name="arrow-forward" size={20} color={colors.background} />
-                </Animated.View>
-              </TouchableOpacity>
-            </LinearGradient>
-          </Animated.View>
-        </View>
-
-        {/* Trust Badges */}
-        <View style={styles.trustSection}>
-          <View style={styles.trustItem}>
-            <Ionicons name="shield-checkmark" size={24} color={colors.primary} />
-            <Text style={styles.trustText}>Dati Verificabili</Text>
-          </View>
-          <View style={styles.trustItem}>
-            <Ionicons name="analytics" size={24} color={colors.primary} />
-            <Text style={styles.trustText}>AI Avanzata</Text>
-          </View>
-          <View style={styles.trustItem}>
-            <Ionicons name="flash" size={24} color={colors.primary} />
-            <Text style={styles.trustText}>Live Alerts</Text>
-          </View>
-        </View>
-
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
-  logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoText: { fontSize: 24, fontWeight: '800', color: colors.textPrimary },
-  loginBtn: { backgroundColor: colors.secondary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
-  loginBtnText: { color: colors.textPrimary, fontWeight: '600' },
-  hero: { padding: 24, alignItems: 'center' },
-  heroTitle: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, textAlign: 'center', marginBottom: 8 },
-  heroSubtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
-  statsRow: { flexDirection: 'row', gap: 16 },
-  statBox: { backgroundColor: colors.card, padding: 16, borderRadius: 16, alignItems: 'center', minWidth: 100 },
-  statValue: { fontSize: 24, fontWeight: '800', color: colors.primary },
-  statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-  // LIVE badge
-  lastWinBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(0, 255, 136, 0.1)', paddingVertical: 12, paddingHorizontal: 16, marginHorizontal: 20, borderRadius: 12, marginTop: 16 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255, 77, 77, 0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FF4D4D' },
-  liveText: { color: '#FF4D4D', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  lastWinText: { color: colors.textPrimary, fontSize: 14, flex: 1 },
-  lastWinAmount: { color: colors.primary, fontWeight: '700' },
-  lastWinTime: { color: colors.textMuted, fontSize: 12 },
-  fomoBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.card, marginTop: 16 },
-  fomoItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  fomoLive: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  fomoText: { color: colors.textSecondary, fontSize: 12 },
-  section: { padding: 20 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
-  sectionLink: { color: colors.primary, fontWeight: '600' },
-  schedina: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
-  schedinaBlurred: {},
-  schedinaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  schedinaStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  schedinaStatusText: { fontSize: 12, fontWeight: '700' },
-  schedinaOdds: { fontSize: 16, fontWeight: '700', color: colors.primary },
-  schedinaMatches: { marginBottom: 12 },
-  matchRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
-  matchTeams: { color: colors.textPrimary, fontSize: 14 },
-  matchBet: { color: colors.textSecondary, fontSize: 14 },
-  moreMatches: { color: colors.textMuted, fontSize: 12, marginTop: 8 },
-  // New gradient overlay for locked schedine
-  blurOverlay: { borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
-  blurGradient: { alignItems: 'center', justifyContent: 'center', paddingVertical: 28, gap: 8 },
-  blurText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
-  schedinaFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  schedinaStake: { color: colors.textSecondary, fontSize: 13 },
-  schedinaWin: { color: colors.profit, fontSize: 18, fontWeight: '700' },
-  schdeinaPotential: { color: colors.textSecondary, fontSize: 13 },
-  viewersBar: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  viewersText: { color: colors.textMuted, fontSize: 11 },
-  // CTA with pulse
-  ctaSection: { paddingHorizontal: 20, marginBottom: 24 },
-  ctaShadow: { borderRadius: 20, shadowColor: '#00FF88', shadowOffset: { width: 0, height: 0 }, elevation: 8 },
-  ctaGradient: { borderRadius: 20, padding: 24, alignItems: 'center' },
-  ctaTitle: { fontSize: 22, fontWeight: '800', color: colors.background, marginBottom: 4 },
-  ctaSubtitle: { fontSize: 14, color: 'rgba(11, 15, 20, 0.7)', marginBottom: 16 },
-  ctaButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.background, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 30 },
-  ctaButtonText: { color: colors.primary, fontWeight: '700', fontSize: 16 },
-  trustSection: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 24, borderTopWidth: 1, borderTopColor: colors.border, marginHorizontal: 20 },
-  trustItem: { alignItems: 'center', gap: 8 },
-  trustText: { color: colors.textSecondary, fontSize: 12 },
+const st = StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
+  inner: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16 },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
+  logoText: { fontSize: 26, fontWeight: '800', color: C.text },
+  headline: { fontSize: 26, fontWeight: '800', color: C.text, textAlign: 'center', lineHeight: 34 },
+  subheadline: { fontSize: 14, color: C.sub, textAlign: 'center', marginTop: 8 },
+  statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
+  statBox: { backgroundColor: C.card, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 16, alignItems: 'center', minWidth: 95, borderWidth: 1, borderColor: C.border },
+  statVal: { fontSize: 22, fontWeight: '800', color: C.green },
+  statLbl: { fontSize: 10, color: C.muted, marginTop: 3 },
+  liveBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,77,77,0.1)', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, alignSelf: 'center' },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red },
+  liveLabel: { color: C.red, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+  liveText: { color: C.sub, fontSize: 13, flex: 1 },
+  carousel: { alignItems: 'center' },
+  carouselCard: { backgroundColor: C.card, borderRadius: 18, paddingVertical: 20, paddingHorizontal: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.2)', width: width - 80 },
+  carouselAmount: { fontSize: 36, fontWeight: '800', color: C.green },
+  carouselDetail: { fontSize: 13, color: C.sub, marginTop: 4 },
+  dots: { flexDirection: 'row', gap: 6, marginTop: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.border },
+  dotActive: { backgroundColor: C.green, width: 16 },
+  ctaSection: { alignItems: 'center', gap: 12 },
+  ctaWrap: { borderRadius: 16, overflow: 'hidden', width: '100%' },
+  ctaBtn: { paddingVertical: 18, alignItems: 'center', borderRadius: 16 },
+  ctaText: { color: C.bg, fontSize: 16, fontWeight: '800' },
+  guestBtn: { paddingVertical: 8 },
+  guestText: { color: C.muted, fontSize: 13 },
 });

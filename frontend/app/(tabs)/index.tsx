@@ -276,6 +276,18 @@ export default function PronosticiScreen() {
         </Animated.View>
       )}
 
+      {/* Floating Elite AI Button */}
+      {selections.length === 0 && (
+        <TouchableOpacity
+          style={s.eliteFab}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/elite'); }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="diamond" size={20} color={colors.gold} />
+          <Text style={s.eliteFabText}>Elite AI</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Schedina Modal */}
       <Modal visible={showSchedina} transparent animationType="slide" onRequestClose={() => setShowSchedina(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -446,4 +458,7 @@ const s = StyleSheet.create({
   winLabel: { color: colors.textSecondary, fontSize: 14 },
   winValue: { color: colors.primary, fontSize: 24, fontWeight: '800' },
   disclaimer: { color: colors.textMuted, fontSize: 10, textAlign: 'center' },
+  // Elite FAB
+  eliteFab: { position: 'absolute', bottom: 12, right: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,215,0,0.12)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)' },
+  eliteFabText: { color: colors.gold, fontWeight: '700', fontSize: 13 },
 });

@@ -153,4 +153,22 @@ export const betsAPI = {
   getHistory: async () => (await api.get('/bets/history')).data,
 };
 
+// Elite AI
+export const eliteAPI = {
+  ask: async (query: string, sport?: string) => 
+    (await api.post('/elite/ask', { query, sport })).data,
+};
+
+// Badges & Gamification
+export const badgesAPI = {
+  getDefinitions: async () => (await api.get('/badges/definitions')).data,
+  getUserBadges: async (userId: string) => (await api.get(`/badges/user/${userId}`)).data,
+  checkEliteBadge: async (userId: string) => (await api.post(`/badges/check-elite/${userId}`)).data,
+};
+
+// Leaderboard
+export const leaderboardAPI = {
+  get: async () => (await api.get('/leaderboard')).data,
+};
+
 export default api;

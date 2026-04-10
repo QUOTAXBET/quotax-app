@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 import httpx
 import random
 import asyncio
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -513,27 +514,15 @@ async def get_ai_predictions(request: Request):
 
 SUBSCRIPTION_PLANS = [
     {
-        "id": "base",
-        "name": "Base",
-        "price": 4.99,
-        "period": "mese",
-        "features": [
-            "Accesso limitato schedine",
-            "ROI 7 giorni",
-            "Storico base",
-        ],
-        "highlighted": False,
-    },
-    {
         "id": "pro",
         "name": "Pro",
-        "price": 14.99,
+        "price": 9.99,
         "period": "mese",
         "features": [
-            "Tutte le schedine complete",
-            "ROI completo",
-            "Storico completo",
-            "Accesso parziale AI",
+            "Tutte le schedine AI complete",
+            "Pronostici con analisi AI",
+            "Top Picks giornalieri",
+            "ROI e statistiche avanzate",
             "Supporto prioritario",
         ],
         "highlighted": True,
@@ -541,16 +530,17 @@ SUBSCRIPTION_PLANS = [
     },
     {
         "id": "premium",
-        "name": "Premium",
+        "name": "Elite",
         "price": 29.99,
         "period": "mese",
         "features": [
-            "Tutto incluso",
-            "AI completa",
-            "Notifiche live",
-            "Value bet alerts",
-            "Accesso anticipato",
-            "Supporto VIP",
+            "Tutto del Pro incluso",
+            "Elite AI — domande illimitate",
+            "Notifiche live match",
+            "Value bet alerts in tempo reale",
+            "Accesso anticipato ai pronostici",
+            "Badge esclusivi + Classifica VIP",
+            "Supporto VIP diretto",
         ],
         "highlighted": False,
         "badge": "Massimo Valore",
@@ -576,7 +566,7 @@ async def subscribe(request: Request, user: User = Depends(require_user)):
     body = await request.json()
     plan_id = body.get("plan_id")
     
-    if plan_id not in ["base", "pro", "premium"]:
+    if plan_id not in ["pro", "premium"]:
         raise HTTPException(status_code=400, detail="Piano non valido")
     
     # Mock subscription
@@ -1045,6 +1035,153 @@ async def get_daily_opportunities():
         "total": len(opportunities),
         "opportunities": opportunities,
         "viewers": random.randint(80, 250),
+    }
+
+
+# ==================== ELITE AI PREDICTION ====================
+
+class EliteAskRequest(BaseModel):
+    query: str
+    sport: Optional[str] = None
+
+ELITE_SYSTEM_PROMPT = """Sei EdgeBet AI, un esperto analista sportivo basato su dati e statistica avanzata.
+Rispondi SEMPRE in italiano. Quando l'utente chiede una previsione su un evento sportivo:
+
+1. Analizza le squadre/atleti menzionati
+2. Fornisci una previsione chiara con percentuale di probabilità
+3. Indica il livello di rischio (Basso/Medio/Alto)
+4. Suggerisci la quota di valore e il tipo di scommessa
+5. Spiega brevemente il ragionamento basato su dati
+
+Formatta la risposta in modo strutturato con sezioni:
+🏆 PREVISIONE: [outcome]
+📊 PROBABILITÀ: [X%]
+⚠️ RISCHIO: [Basso/Medio/Alto]
+💰 QUOTA CONSIGLIATA: [@X.XX]
+🧠 ANALISI: [breve spiegazione]
+
+Se l'utente non chiede di un evento specifico, rispondi con consigli generali sulle strategie di betting.
+Ricorda: questo è un sistema di SIMULAZIONE a scopo dimostrativo, non incoraggiare il gioco d'azzardo reale."""
+
+@api_router.post("/elite/ask")
+async def elite_ask(req: EliteAskRequest):
+    """Elite feature: AI-powered custom match prediction"""
+    try:
+        llm_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not llm_key:
+            raise HTTPException(status_code=500, detail="LLM key not configured")
+
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"elite_{uuid.uuid4().hex[:8]}",
+            system_message=ELITE_SYSTEM_PROMPT
+        )
+        chat.with_model("openai", "gpt-4.1-mini")
+
+        user_msg = UserMessage(text=req.query)
+        response = await chat.send_message(user_msg)
+
+        return {
+            "query": req.query,
+            "response": response,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "model": "EdgeBet AI v2.0"
+        }
+    except Exception as e:
+        logger.error(f"Elite AI error: {e}")
+        # Fallback mock response
+        return {
+            "query": req.query,
+            "response": f"🏆 PREVISIONE: Basandomi sull'analisi dei dati disponibili per '{req.query}', il nostro modello AI suggerisce di attendere ulteriori dati prima di effettuare una previsione definitiva.\n\n📊 PROBABILITÀ: In fase di calcolo\n⚠️ RISCHIO: Medio\n💰 QUOTA CONSIGLIATA: Verificare le quote aggiornate\n🧠 ANALISI: Il sistema sta elaborando i dati. Riprova tra qualche secondo.",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "model": "EdgeBet AI v2.0 (fallback)"
+        }
+
+
+# ==================== GAMIFICATION & BADGES ====================
+
+BADGE_DEFINITIONS = [
+    {"badge_id": "first_follow", "name": "Prima Schedina", "description": "Hai seguito la tua prima schedina!", "icon": "bookmark", "category": "beginner"},
+    {"badge_id": "ten_follows", "name": "Collezionista", "description": "Hai seguito 10 schedine!", "icon": "layers", "category": "intermediate"},
+    {"badge_id": "streak_3", "name": "Serie Vincente", "description": "3 previsioni corrette di fila!", "icon": "flame", "category": "intermediate"},
+    {"badge_id": "streak_7", "name": "Inarrestabile", "description": "7 giorni consecutivi di utilizzo!", "icon": "rocket", "category": "advanced"},
+    {"badge_id": "top_pick_win", "name": "Occhio d'Aquila", "description": "Un Top Pick che hai seguito ha vinto!", "icon": "eye", "category": "intermediate"},
+    {"badge_id": "elite_user", "name": "Membro Elite", "description": "Hai usato la funzione Elite AI!", "icon": "diamond", "category": "elite"},
+    {"badge_id": "profit_master", "name": "Re del Profitto", "description": "ROI personale sopra il 20%!", "icon": "trending-up", "category": "advanced"},
+    {"badge_id": "community", "name": "Membro della Community", "description": "Ti sei registrato su EdgeBet!", "icon": "people", "category": "beginner"},
+]
+
+@api_router.get("/badges/definitions")
+async def get_badge_definitions():
+    """Get all badge definitions"""
+    return {"badges": BADGE_DEFINITIONS}
+
+@api_router.get("/badges/user/{user_id}")
+async def get_user_badges(user_id: str):
+    """Get badges earned by a user"""
+    user_doc = await db.users.find_one({"user_id": user_id})
+    if not user_doc:
+        return {"badges": [], "total_points": 0}
+
+    earned = user_doc.get("badges", [])
+    # Auto-grant community badge for registered users
+    if "community" not in [b["badge_id"] for b in earned]:
+        badge = {"badge_id": "community", "earned_at": datetime.now(timezone.utc).isoformat()}
+        earned.append(badge)
+        await db.users.update_one({"user_id": user_id}, {"$set": {"badges": earned}})
+
+    # Check follow count for follow-based badges
+    follow_count = user_doc.get("followed_count", 0)
+    badge_ids = [b["badge_id"] for b in earned]
+    if follow_count >= 1 and "first_follow" not in badge_ids:
+        earned.append({"badge_id": "first_follow", "earned_at": datetime.now(timezone.utc).isoformat(), "new": True})
+    if follow_count >= 10 and "ten_follows" not in badge_ids:
+        earned.append({"badge_id": "ten_follows", "earned_at": datetime.now(timezone.utc).isoformat(), "new": True})
+
+    await db.users.update_one({"user_id": user_id}, {"$set": {"badges": earned}})
+
+    points = len(earned) * 100
+    return {"badges": earned, "total_points": points, "definitions": BADGE_DEFINITIONS}
+
+@api_router.post("/badges/check-elite/{user_id}")
+async def check_elite_badge(user_id: str):
+    """Grant elite badge when user uses Elite AI"""
+    user_doc = await db.users.find_one({"user_id": user_id})
+    if not user_doc:
+        return {"granted": False}
+
+    badges = user_doc.get("badges", [])
+    badge_ids = [b["badge_id"] for b in badges]
+    if "elite_user" not in badge_ids:
+        badges.append({"badge_id": "elite_user", "earned_at": datetime.now(timezone.utc).isoformat(), "new": True})
+        await db.users.update_one({"user_id": user_id}, {"$set": {"badges": badges}})
+        return {"granted": True, "badge": next(b for b in BADGE_DEFINITIONS if b["badge_id"] == "elite_user")}
+    return {"granted": False}
+
+
+# ==================== LEADERBOARD ====================
+
+@api_router.get("/leaderboard")
+async def get_leaderboard():
+    """Get user leaderboard (mock + real users)"""
+    # Mock leaderboard with realistic Italian names
+    mock_leaders = [
+        {"rank": 1, "name": "Marco T.", "roi": 34.2, "win_rate": 78, "streak": 8, "badge_count": 6, "tier": "elite"},
+        {"rank": 2, "name": "Luca R.", "roi": 28.7, "win_rate": 72, "streak": 5, "badge_count": 5, "tier": "premium"},
+        {"rank": 3, "name": "Andrea P.", "roi": 25.1, "win_rate": 70, "streak": 4, "badge_count": 5, "tier": "premium"},
+        {"rank": 4, "name": "Giuseppe M.", "roi": 22.3, "win_rate": 68, "streak": 3, "badge_count": 4, "tier": "premium"},
+        {"rank": 5, "name": "Stefano B.", "roi": 19.8, "win_rate": 65, "streak": 3, "badge_count": 4, "tier": "pro"},
+        {"rank": 6, "name": "Francesco L.", "roi": 17.5, "win_rate": 63, "streak": 2, "badge_count": 3, "tier": "pro"},
+        {"rank": 7, "name": "Alessandro V.", "roi": 15.2, "win_rate": 61, "streak": 2, "badge_count": 3, "tier": "pro"},
+        {"rank": 8, "name": "Davide C.", "roi": 12.8, "win_rate": 59, "streak": 1, "badge_count": 2, "tier": "free"},
+        {"rank": 9, "name": "Matteo S.", "roi": 10.4, "win_rate": 57, "streak": 1, "badge_count": 2, "tier": "free"},
+        {"rank": 10, "name": "Simone D.", "roi": 8.1, "win_rate": 55, "streak": 0, "badge_count": 1, "tier": "free"},
+    ]
+
+    return {
+        "leaderboard": mock_leaders,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_users": 1247
     }
 
 

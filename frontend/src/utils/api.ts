@@ -175,4 +175,15 @@ export const leaderboardAPI = {
   get: async () => (await api.get('/leaderboard')).data,
 };
 
+// Notifications
+export const notificationsAPI = {
+  getAll: async (userId: string) => (await api.get(`/notifications/${userId}`)).data,
+  markRead: async (notificationId: string) => (await api.post(`/notifications/mark-read/${notificationId}`)).data,
+  markAllRead: async (userId: string) => (await api.post(`/notifications/mark-all-read/${userId}`)).data,
+  getPreferences: async (userId: string) => (await api.get(`/notifications/preferences/${userId}`)).data,
+  updatePreferences: async (userId: string, prefs: any) => (await api.put(`/notifications/preferences/${userId}`, prefs)).data,
+  deleteNotification: async (notificationId: string) => (await api.delete(`/notifications/${notificationId}`)).data,
+  getTypes: async () => (await api.get('/notifications/types')).data,
+};
+
 export default api;

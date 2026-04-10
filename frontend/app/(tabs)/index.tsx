@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { matchesAPI, socialAPI } from '../../src/utils/api';
+import { matchesAPI, socialAPI, notificationsAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import SportFilter from '../../src/components/SportFilter';
 import { format } from 'date-fns';
@@ -26,6 +26,7 @@ export default function PronosticiScreen() {
   const [selections, setSelections] = useState<Selection[]>([]);
   const [showSchedina, setShowSchedina] = useState(false);
   const [stakeInput, setStakeInput] = useState('10');
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
   const barAnim = useRef(new Animated.Value(0)).current;
   // Glow animations for odds
   const glowAnims = useRef<Record<string, Animated.Value>>({}).current;
@@ -49,6 +50,14 @@ export default function PronosticiScreen() {
 
   useEffect(() => { fetchData(selectedSport); }, [selectedSport]);
   const onRefresh = useCallback(() => { setRefreshing(true); fetchData(selectedSport); }, [selectedSport]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const userId = user?.user_id || 'guest_demo';
+    notificationsAPI.getAll(userId).then(data => {
+      setUnreadNotifs(data.unread_count || 0);
+    }).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     Animated.timing(barAnim, { toValue: selections.length > 0 ? 1 : 0, duration: 300, useNativeDriver: true }).start();
@@ -98,14 +107,20 @@ export default function PronosticiScreen() {
           <Ionicons name="analytics" size={22} color={colors.primary} />
           <Text style={s.logoText}>Pronostici</Text>
         </View>
-        {!isAuthenticated ? (
-          <TouchableOpacity style={s.loginBtn} onPress={() => router.push('/login')}>
-            <Ionicons name="log-in-outline" size={16} color={colors.textPrimary} />
-            <Text style={s.loginBtnText}>Accedi</Text>
+        <View style={s.headerRight}>
+          <TouchableOpacity style={s.bellBtn} onPress={() => router.push('/notifications')}>
+            <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
+            {unreadNotifs > 0 && <View style={s.bellBadge}><Text style={s.bellBadgeText}>{unreadNotifs}</Text></View>}
           </TouchableOpacity>
-        ) : (
-          <View style={s.userBadge}><Text style={s.userBadgeText}>{user?.name?.split(' ')[0]}</Text></View>
-        )}
+          {!isAuthenticated ? (
+            <TouchableOpacity style={s.loginBtn} onPress={() => router.push('/login')}>
+              <Ionicons name="log-in-outline" size={16} color={colors.textPrimary} />
+              <Text style={s.loginBtnText}>Accedi</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={s.userBadge}><Text style={s.userBadgeText}>{user?.name?.split(' ')[0]}</Text></View>
+          )}
+        </View>
       </View>
 
       {/* Compact Stats Row */}
@@ -348,6 +363,10 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
   logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoText: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  bellBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: colors.loss, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
   loginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.secondary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14 },
   loginBtnText: { color: colors.textPrimary, fontWeight: '600', fontSize: 13 },
   userBadge: { backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14 },

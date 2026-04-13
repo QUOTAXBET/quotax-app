@@ -309,7 +309,7 @@ export default function PronosticiScreen() {
                 </View>
                 {/* FOMO CTA only on LOCKED cards */}
                 {shouldLock && (
-                  <TouchableOpacity style={s.fomoCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/subscribe'); }} activeOpacity={0.8}>
+                  <TouchableOpacity style={s.fomoCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/plans'); }} activeOpacity={0.8}>
                     <Ionicons name="flash" size={13} color={colors.primary} />
                     <Text style={s.fomoCTAText}>Sblocca la potenza dell'AI</Text>
                     <Ionicons name="chevron-forward" size={13} color={colors.primary} />

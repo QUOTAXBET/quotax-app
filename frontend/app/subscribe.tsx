@@ -42,9 +42,9 @@ export default function SubscribeScreen() {
       let allPlans = data.plans || [];
       // Filter plans if a specific plan is requested via query param
       if (planFilter === 'elite') {
-        allPlans = allPlans.filter((p: any) => p.tier === 'premium');
+        allPlans = allPlans.filter((p: any) => p.id === 'premium');
       } else if (planFilter === 'pro') {
-        allPlans = allPlans.filter((p: any) => p.tier === 'pro');
+        allPlans = allPlans.filter((p: any) => p.id === 'pro');
       }
       setPlans(allPlans);
       setTrial(data.trial);

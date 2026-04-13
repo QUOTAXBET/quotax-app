@@ -14,7 +14,12 @@ class User(BaseModel):
     total_bets: int = 0
     total_wins: int = 0
     total_profit: float = 0.0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
 
 
 class EliteAskRequest(BaseModel):

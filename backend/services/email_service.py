@@ -40,29 +40,36 @@ async def queue_email(template_id: str, to_email: str, user_name: str, user_id: 
 
 async def check_upsell_email(user_id: str, user_doc: dict):
     """Check if upsell email should be sent to returning free user"""
-    if user_doc.get("subscription_tier") not in ["free", None]:
-        return
+    try:
+        if user_doc.get("subscription_tier") not in ["free", None]:
+            return
 
-    created_at = user_doc.get("created_at")
-    if not created_at:
-        return
+        created_at = user_doc.get("created_at")
+        if not created_at:
+            return
 
-    if isinstance(created_at, str):
-        created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
 
-    days_since = (datetime.now(timezone.utc) - created_at).days
-    if days_since < 3:
-        return
+        # Ensure timezone-aware
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
 
-    existing = await db.sent_emails.find_one({
-        "user_id": user_id,
-        "template_id": "upsell",
-        "auto": True
-    })
-    if existing:
-        return
+        days_since = (datetime.now(timezone.utc) - created_at).days
+        if days_since < 3:
+            return
 
-    email = user_doc.get("email")
-    name = user_doc.get("name", "Utente")
-    if email:
-        await queue_email("upsell", email, name, user_id)
+        existing = await db.sent_emails.find_one({
+            "user_id": user_id,
+            "template_id": "upsell",
+            "auto": True
+        })
+        if existing:
+            return
+
+        email = user_doc.get("email")
+        name = user_doc.get("name", "Utente")
+        if email:
+            await queue_email("upsell", email, name, user_id)
+    except Exception as e:
+        logger.error(f"Upsell email check error (non-blocking): {e}")

@@ -307,11 +307,11 @@ export default function PronosticiScreen() {
                     </Text>
                   </View>
                 </View>
-                {/* FOMO CTA only on LOCKED cards */}
+                {/* FOMO CTA only on LOCKED cards — contextual per tier */}
                 {shouldLock && (
-                  <TouchableOpacity style={s.fomoCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/plans'); }} activeOpacity={0.8}>
+                  <TouchableOpacity style={s.fomoCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(isAuthenticated ? '/subscribe' : '/plans'); }} activeOpacity={0.8}>
                     <Ionicons name="flash" size={13} color={colors.primary} />
-                    <Text style={s.fomoCTAText}>Sblocca la potenza dell'AI</Text>
+                    <Text style={s.fomoCTAText}>{isAuthenticated ? 'Abbonati per sbloccare l\'AI' : 'Sblocca la potenza dell\'AI'}</Text>
                     <Ionicons name="chevron-forward" size={13} color={colors.primary} />
                   </TouchableOpacity>
                 )}

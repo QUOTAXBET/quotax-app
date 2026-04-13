@@ -191,8 +191,8 @@ export default function TopPicksScreen() {
                   <Animated.View style={[st.lockedOverlayFull, { transform: [{ scale: pulseAnim }] }]}>
                     <TouchableOpacity style={st.lockedFullCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(userTier === 'guest' ? '/login' : '/subscribe'); }} activeOpacity={0.8}>
                       <Ionicons name="diamond" size={24} color={colors.gold} />
-                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : userTier === 'pro' ? 'Passa a Elite' : 'Attiva Pro ora'}</Text>
-                      <Text style={st.lockedFullSub}>{userTier === 'pro' ? 'Sblocca tutti i Top Picks' : 'Non perdere questa quota'}</Text>
+                      <Text style={st.lockedFullTitle}>{userTier === 'guest' ? 'Registrati gratis' : userTier === 'pro' ? 'Passa a Elite' : 'Abbonati per sbloccare'}</Text>
+                      <Text style={st.lockedFullSub}>{userTier === 'pro' ? 'Sblocca tutti i Top Picks' : userTier === 'guest' ? 'Sblocca la potenza dell\'AI' : 'Scegli il piano adatto a te'}</Text>
                     </TouchableOpacity>
                   </Animated.View>
                 </View>

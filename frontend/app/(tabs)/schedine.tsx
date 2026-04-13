@@ -230,7 +230,7 @@ export default function SchedineAIScreen() {
                   </View>
                   <LinearGradient colors={['transparent', 'rgba(0,255,136,0.08)']} style={st.lockedGradient}>
                     <Ionicons name="lock-open" size={18} color={colors.primary} />
-                    <Text style={st.lockedText}>{userTier === 'guest' ? 'Registrati gratis per sbloccare' : 'Passa a Premium per tutte le schedine'}</Text>
+                    <Text style={st.lockedText}>{userTier === 'guest' ? 'Registrati gratis per sbloccare' : 'Abbonati per sbloccare'}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}

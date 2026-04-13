@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { badgesAPI, leaderboardAPI, devAPI, userStatsAPI } from '../../src/utils/api';
+import { badgesAPI, leaderboardAPI, devAPI, userStatsAPI, weeklyReportAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { LineChart } from 'react-native-gifted-charts';
 
@@ -68,10 +68,13 @@ export default function ProfileScreen() {
   const [switchingTier, setSwitchingTier] = useState<string | null>(null);
   const [statsData, setStatsData] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [weeklyReport, setWeeklyReport] = useState<any>(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const statsEntryAnim = useRef(new Animated.Value(0)).current;
 
   const isProOrElite = user?.subscription_tier === 'pro' || user?.subscription_tier === 'premium';
+  const isElite = user?.subscription_tier === 'premium';
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -90,6 +93,20 @@ export default function ProfileScreen() {
     try {
       const data = await userStatsAPI.get(user.user_id);
       setStatsData(data);
+
+      // Fetch weekly report for Elite users
+      if (isElite) {
+        setReportLoading(true);
+        try {
+          const report = await weeklyReportAPI.get(user.user_id);
+          setWeeklyReport(report);
+        } catch (e) {
+          console.log('Weekly report not available:', e);
+        } finally {
+          setReportLoading(false);
+        }
+      }
+
       // Animate entry
       Animated.timing(statsEntryAnim, {
         toValue: 1,
@@ -101,7 +118,7 @@ export default function ProfileScreen() {
     } finally {
       setStatsLoading(false);
     }
-  }, [user?.user_id, isProOrElite]);
+  }, [user?.user_id, isProOrElite, isElite]);
 
   useEffect(() => {
     if (activeSection === 'stats' && !statsData && isProOrElite) {
@@ -390,6 +407,9 @@ export default function ProfileScreen() {
             statsLoading={statsLoading}
             statsEntryAnim={statsEntryAnim}
             onRefresh={fetchStats}
+            weeklyReport={weeklyReport}
+            reportLoading={reportLoading}
+            isElite={isElite}
           />
         )}
       </ScrollView>
@@ -398,7 +418,7 @@ export default function ProfileScreen() {
 }
 
 // Stats Section Component
-function StatsSection({ statsData, statsLoading, statsEntryAnim, onRefresh }: { statsData: any; statsLoading: boolean; statsEntryAnim: Animated.Value; onRefresh: () => void }) {
+function StatsSection({ statsData, statsLoading, statsEntryAnim, onRefresh, weeklyReport, reportLoading, isElite }: { statsData: any; statsLoading: boolean; statsEntryAnim: Animated.Value; onRefresh: () => void; weeklyReport: any; reportLoading: boolean; isElite: boolean }) {
   const roiValue = useCountUp(statsData?.roi_monthly || 0, 1400, 1);
   const winRateValue = useCountUp(statsData?.win_rate || 0, 1200, 1);
   const profitValue = useCountUp(statsData?.profit_net || 0, 1600, 2);
@@ -587,6 +607,95 @@ function StatsSection({ statsData, statsLoading, statsEntryAnim, onRefresh }: { 
       </View>
 
       <Text style={st.statsDisclaimer}>Statistiche simulate a scopo dimostrativo. Non rappresentano risultati reali.</Text>
+
+      {/* Weekly Report (Elite Only) */}
+      {isElite && (
+        <View style={st.reportCard}>
+          <View style={st.reportHeader}>
+            <View style={st.reportHeaderLeft}>
+              <Ionicons name="document-text" size={18} color={colors.gold} />
+              <Text style={st.reportTitle}>Report Settimanale AI</Text>
+            </View>
+            <View style={st.reportEliteBadge}>
+              <Ionicons name="diamond" size={10} color={colors.background} />
+              <Text style={st.reportEliteText}>ELITE</Text>
+            </View>
+          </View>
+
+          {reportLoading && !weeklyReport && (
+            <View style={st.reportLoading}>
+              <ActivityIndicator size="small" color={colors.gold} />
+              <Text style={st.reportLoadingText}>Generazione report AI...</Text>
+            </View>
+          )}
+
+          {weeklyReport && (
+            <View style={st.reportContent}>
+              <Text style={st.reportPeriod}>{weeklyReport.period}</Text>
+
+              {/* Report Stats Row */}
+              <View style={st.reportStatsRow}>
+                <View style={st.reportStatItem}>
+                  <Text style={st.reportStatLabel}>ROI</Text>
+                  <Text style={[st.reportStatValue, { color: (weeklyReport.stats?.roi || 0) >= 0 ? colors.profit : colors.loss }]}>
+                    {(weeklyReport.stats?.roi || 0) >= 0 ? '+' : ''}{weeklyReport.stats?.roi}%
+                  </Text>
+                </View>
+                <View style={st.reportStatDivider} />
+                <View style={st.reportStatItem}>
+                  <Text style={st.reportStatLabel}>Win Rate</Text>
+                  <Text style={[st.reportStatValue, { color: colors.primary }]}>{weeklyReport.stats?.win_rate}%</Text>
+                </View>
+                <View style={st.reportStatDivider} />
+                <View style={st.reportStatItem}>
+                  <Text style={st.reportStatLabel}>Profitto</Text>
+                  <Text style={[st.reportStatValue, { color: (weeklyReport.stats?.profit || 0) >= 0 ? colors.profit : colors.loss }]}>
+                    {(weeklyReport.stats?.profit || 0) >= 0 ? '+' : ''}{weeklyReport.stats?.profit?.toFixed(0)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Best & Worst Pick */}
+              <View style={st.reportPicksRow}>
+                {weeklyReport.best_pick && (
+                  <View style={[st.reportPickCard, st.reportPickBest]}>
+                    <Ionicons name="trophy" size={14} color={colors.profit} />
+                    <Text style={st.reportPickLabel}>Miglior Pick</Text>
+                    <Text style={st.reportPickMatch} numberOfLines={1}>{weeklyReport.best_pick.match}</Text>
+                    <Text style={[st.reportPickProfit, { color: colors.profit }]}>+{weeklyReport.best_pick.profit}</Text>
+                  </View>
+                )}
+                {weeklyReport.worst_pick && (
+                  <View style={[st.reportPickCard, st.reportPickWorst]}>
+                    <Ionicons name="trending-down" size={14} color={colors.loss} />
+                    <Text style={st.reportPickLabel}>Peggior Pick</Text>
+                    <Text style={st.reportPickMatch} numberOfLines={1}>{weeklyReport.worst_pick.match}</Text>
+                    <Text style={[st.reportPickProfit, { color: colors.loss }]}>-{weeklyReport.worst_pick.loss}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* AI Suggestion */}
+              {weeklyReport.ai_suggestion && (
+                <View style={st.reportAI}>
+                  <View style={st.reportAIHeader}>
+                    <Ionicons name="sparkles" size={14} color={colors.gold} />
+                    <Text style={st.reportAITitle}>Consiglio AI</Text>
+                  </View>
+                  <Text style={st.reportAIText}>{weeklyReport.ai_suggestion}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!weeklyReport && !reportLoading && (
+            <View style={st.reportEmpty}>
+              <Ionicons name="hourglass" size={20} color={colors.textMuted} />
+              <Text style={st.reportEmptyText}>Nessun report disponibile questa settimana</Text>
+            </View>
+          )}
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -735,4 +844,33 @@ const st = StyleSheet.create({
   statsFooterLabel: { color: colors.textMuted, fontSize: 12 },
   statsFooterValue: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
   statsDisclaimer: { color: colors.textMuted, fontSize: 9, textAlign: 'center', fontStyle: 'italic', marginTop: 4, opacity: 0.6 },
+  // Weekly Report
+  reportCard: { backgroundColor: 'rgba(255,215,0,0.04)', borderRadius: 20, padding: 18, borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.2)', marginTop: 4 },
+  reportHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  reportHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reportTitle: { color: colors.gold, fontSize: 16, fontWeight: '800' },
+  reportEliteBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.gold, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  reportEliteText: { color: colors.background, fontSize: 8, fontWeight: '900' },
+  reportLoading: { alignItems: 'center', gap: 8, paddingVertical: 20 },
+  reportLoadingText: { color: colors.textMuted, fontSize: 12 },
+  reportContent: { gap: 14 },
+  reportPeriod: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  reportStatsRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14 },
+  reportStatItem: { flex: 1, alignItems: 'center', gap: 4 },
+  reportStatLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '600', textTransform: 'uppercase' },
+  reportStatValue: { color: colors.textPrimary, fontSize: 20, fontWeight: '900' },
+  reportStatDivider: { width: 1, height: 30, backgroundColor: colors.border },
+  reportPicksRow: { flexDirection: 'row', gap: 10 },
+  reportPickCard: { flex: 1, borderRadius: 14, padding: 12, gap: 6, alignItems: 'center' },
+  reportPickBest: { backgroundColor: 'rgba(0,255,136,0.06)', borderWidth: 1, borderColor: 'rgba(0,255,136,0.12)' },
+  reportPickWorst: { backgroundColor: 'rgba(255,77,77,0.06)', borderWidth: 1, borderColor: 'rgba(255,77,77,0.12)' },
+  reportPickLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  reportPickMatch: { color: colors.textPrimary, fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  reportPickProfit: { fontSize: 16, fontWeight: '900' },
+  reportAI: { backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
+  reportAIHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  reportAITitle: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+  reportAIText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  reportEmpty: { alignItems: 'center', gap: 8, paddingVertical: 20 },
+  reportEmptyText: { color: colors.textMuted, fontSize: 12 },
 });

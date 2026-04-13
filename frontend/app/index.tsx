@@ -41,6 +41,16 @@ export default function LandingPage() {
   const ctaPulse = useRef(new Animated.Value(1)).current;
   const logoGlow = useRef(new Animated.Value(0.4)).current;
 
+  // 3D Stats entry animations (staggered)
+  const stat1Scale = useRef(new Animated.Value(0)).current;
+  const stat2Scale = useRef(new Animated.Value(0)).current;
+  const stat3Scale = useRef(new Animated.Value(0)).current;
+  const stat1Translate = useRef(new Animated.Value(40)).current;
+  const stat2Translate = useRef(new Animated.Value(40)).current;
+  const stat3Translate = useRef(new Animated.Value(40)).current;
+  // Carousel fade
+  const carouselFade = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (isAuthenticated && !authLoading) { router.replace('/(tabs)'); return; }
     fetchData();
@@ -51,6 +61,23 @@ export default function LandingPage() {
     try {
       const s = await publicAPI.getStats();
       setStats(s);
+      // Trigger staggered 3D entry for stat boxes
+      setTimeout(() => {
+        Animated.stagger(150, [
+          Animated.parallel([
+            Animated.spring(stat1Scale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+            Animated.timing(stat1Translate, { toValue: 0, duration: 500, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.spring(stat2Scale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+            Animated.timing(stat2Translate, { toValue: 0, duration: 500, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.spring(stat3Scale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+            Animated.timing(stat3Translate, { toValue: 0, duration: 500, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+          ]),
+        ]).start();
+      }, 200);
     } catch (e) {}
   };
 
@@ -70,9 +97,12 @@ export default function LandingPage() {
       Animated.timing(logoGlow, { toValue: 1, duration: 1500, useNativeDriver: true }),
       Animated.timing(logoGlow, { toValue: 0.4, duration: 1500, useNativeDriver: true }),
     ])).start();
-    // Carousel autoplay
+    // Carousel autoplay with fade
     const interval = setInterval(() => {
-      setCarouselIdx(prev => (prev + 1) % WINS.length);
+      Animated.timing(carouselFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setCarouselIdx(prev => (prev + 1) % WINS.length);
+        Animated.timing(carouselFade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
     }, 3000);
     return () => clearInterval(interval);
   };
@@ -105,21 +135,24 @@ export default function LandingPage() {
           <Text style={st.subheadline}>L'algoritmo AI che analizza 40+ variabili per ogni evento</Text>
         </View>
 
-        {/* Stats — 3D depth with shadows */}
+        {/* Stats — 3D depth with shadows + staggered entry */}
         {stats && (
           <View style={st.statsRow}>
-            <View style={st.statBox}>
+            <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat1Scale }, { translateY: stat1Translate }], opacity: stat1Scale }]}>
               <CountUp to={stats.roi_7d} prefix="+" suffix="%" style={st.statVal} />
               <Text style={st.statLbl}>ROI 7gg</Text>
-            </View>
-            <View style={[st.statBox, st.statBoxCenter]}>
+              <View style={st.statGlow} />
+            </Animated.View>
+            <Animated.View style={[st.statBox, st.statBoxCenter, st.statBox3D, { transform: [{ scale: stat2Scale }, { translateY: stat2Translate }], opacity: stat2Scale }]}>
               <CountUp to={stats.win_rate} suffix="%" style={[st.statVal, { color: C.gold }]} />
               <Text style={st.statLbl}>Win Rate</Text>
-            </View>
-            <View style={st.statBox}>
+              <View style={st.statGlowGold} />
+            </Animated.View>
+            <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat3Scale }, { translateY: stat3Translate }], opacity: stat3Scale }]}>
               <CountUp to={stats.streak} style={st.statVal} />
               <Text style={st.statLbl}>Serie Vinte</Text>
-            </View>
+              <View style={st.statGlow} />
+            </Animated.View>
           </View>
         )}
 
@@ -130,13 +163,13 @@ export default function LandingPage() {
           <Text style={st.liveText}>{liveSchedine} schedine disponibili ora</Text>
         </View>
 
-        {/* Win Carousel — 3D effect */}
+        {/* Win Carousel — 3D effect with fade */}
         <View style={st.carousel}>
-          <View style={st.carouselCard}>
+          <Animated.View style={[st.carouselCard, { opacity: carouselFade }]}>
             <Text style={st.carouselTitle}>Ultima vincita verificata</Text>
             <Text style={st.carouselAmount}>{WINS[carouselIdx].amount}</Text>
             <Text style={st.carouselDetail}>{WINS[carouselIdx].detail}</Text>
-          </View>
+          </Animated.View>
           <View style={st.dots}>
             {WINS.map((_, i) => <View key={i} style={[st.dot, i === carouselIdx && st.dotActive]} />)}
           </View>
@@ -176,8 +209,11 @@ const st = StyleSheet.create({
   subheadline: { fontSize: 14, color: C.sub, textAlign: 'center', marginTop: 8, lineHeight: 20 },
   // Stats 3D
   statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
-  statBox: { backgroundColor: C.card, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 18, alignItems: 'center', minWidth: 100, borderWidth: 1, borderColor: C.border, elevation: 8 },
-  statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A' },
+  statBox: { backgroundColor: C.card, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 18, alignItems: 'center', minWidth: 100, borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
+  statBox3D: { shadowColor: C.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
+  statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A', shadowColor: C.gold, shadowOpacity: 0.2 },
+  statGlow: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.green, borderRadius: 20, opacity: 0.08 },
+  statGlowGold: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.gold, borderRadius: 20, opacity: 0.1 },
   statVal: { fontSize: 24, fontWeight: '900', color: C.green },
   statLbl: { fontSize: 10, color: C.muted, marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
   // Live Banner

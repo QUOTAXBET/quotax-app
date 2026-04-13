@@ -121,7 +121,7 @@ export default function EliteScreen() {
             <Text style={s.lockedCTAText}>{isAuthenticated ? 'Attiva Pro ora' : 'Registrati gratis'}</Text>
           </TouchableOpacity>
         </View>
-        {badgePopup && <BadgeUnlockPopup badge={badgePopup} onDismiss={() => setBadgePopup(null)} />}
+        {badgePopup && <BadgeUnlockPopup visible={!!badgePopup} badge={badgePopup} onClose={() => setBadgePopup(null)} />}
       </SafeAreaView>
     );
   }
@@ -240,14 +240,14 @@ export default function EliteScreen() {
             </View>
           )}
 
-          {/* Premium gate for non-premium */}
-          {!isPremium && (
+          {/* Upgrade CTA for Pro users */}
+          {userTier === 'pro' && (
             <View style={s.premiumGate}>
               <Ionicons name="diamond" size={28} color={colors.gold} />
-              <Text style={s.premiumGateTitle}>Funzione Elite</Text>
-              <Text style={s.premiumGateText}>Ogni utente gratuito ha 1 domanda al giorno. Con Premium, domande illimitate.</Text>
+              <Text style={s.premiumGateTitle}>Passa a Elite</Text>
+              <Text style={s.premiumGateText}>Con il piano Pro hai {access?.limit || 3} richieste a settimana. Passa a Elite per richieste illimitate e report settimanali.</Text>
               <TouchableOpacity style={s.premiumGateCTA} onPress={() => router.push('/subscribe')} activeOpacity={0.7}>
-                <Text style={s.premiumGateCTAText}>Passa a Premium</Text>
+                <Text style={s.premiumGateCTAText}>Attiva Elite</Text>
               </TouchableOpacity>
             </View>
           )}

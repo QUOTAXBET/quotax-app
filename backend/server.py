@@ -30,6 +30,7 @@ from routes.opportunities import router as opportunities_router
 from routes.emails import router as emails_router
 from routes.dev import router as dev_router
 from routes.value_bets import router as value_bets_router
+from routes.stats import router as stats_router
 
 # Include all route modules
 api_router.include_router(auth_router)
@@ -44,6 +45,7 @@ api_router.include_router(opportunities_router)
 api_router.include_router(emails_router)
 api_router.include_router(dev_router)
 api_router.include_router(value_bets_router)
+api_router.include_router(stats_router)
 
 @api_router.get("/")
 async def root():

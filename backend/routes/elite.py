@@ -2,37 +2,99 @@ from fastapi import APIRouter, HTTPException, Request
 import os
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from services.database import db
+from services.auth_helpers import get_current_user
 from models.schemas import EliteAskRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+PRO_WEEKLY_LIMIT = 3  # Pro users get 3 requests per week
+
 ELITE_SYSTEM_PROMPT = """Sei EdgeBet AI, un esperto analista sportivo basato su dati e statistica avanzata.
 Rispondi SEMPRE in italiano. Quando l'utente chiede una previsione su un evento sportivo:
 
 1. Analizza le squadre/atleti menzionati
-2. Fornisci una previsione chiara con percentuale di probabilit\u00e0
+2. Fornisci una previsione chiara con percentuale di probabilità
 3. Indica il livello di rischio (Basso/Medio/Alto)
 4. Suggerisci la quota di valore e il tipo di scommessa
 5. Spiega brevemente il ragionamento basato su dati
 
 Formatta la risposta in modo strutturato con sezioni:
-\ud83c\udfc6 PREVISIONE: [outcome]
-\ud83d\udcca PROBABILIT\u00c0: [X%]
-\u26a0\ufe0f RISCHIO: [Basso/Medio/Alto]
-\ud83d\udcb0 QUOTA CONSIGLIATA: [@X.XX]
-\ud83e\udde0 ANALISI: [breve spiegazione]
+🏆 PREVISIONE: [outcome]
+📊 PROBABILITÀ: [X%]
+⚠️ RISCHIO: [Basso/Medio/Alto]
+💰 QUOTA CONSIGLIATA: [@X.XX]
+🧠 ANALISI: [breve spiegazione]
 
 Se l'utente non chiede di un evento specifico, rispondi con consigli generali sulle strategie di betting.
-Ricorda: questo \u00e8 un sistema di SIMULAZIONE a scopo dimostrativo, non incoraggiare il gioco d'azzardo reale."""
+Ricorda: questo è un sistema di SIMULAZIONE a scopo dimostrativo, non incoraggiare il gioco d'azzardo reale."""
+
+
+async def _get_weekly_usage(user_id: str) -> int:
+    """Count how many AI requests a user made this week"""
+    week_start = datetime.now(timezone.utc) - timedelta(days=7)
+    count = await db.elite_chats.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": week_start}
+    })
+    return count
+
+
+@router.get("/elite/access/{user_id}")
+async def check_elite_access(user_id: str):
+    """Check if user can use Elite AI and how many requests remain"""
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        return {"allowed": False, "reason": "user_not_found", "tier": "guest"}
+
+    tier = user_doc.get("subscription_tier", "free")
+
+    if tier == "premium":
+        return {"allowed": True, "tier": "premium", "remaining": -1, "limit": -1, "label": "Illimitato"}
+
+    if tier == "pro":
+        used = await _get_weekly_usage(user_id)
+        remaining = max(0, PRO_WEEKLY_LIMIT - used)
+        return {
+            "allowed": remaining > 0,
+            "tier": "pro",
+            "used": used,
+            "remaining": remaining,
+            "limit": PRO_WEEKLY_LIMIT,
+            "label": f"{remaining}/{PRO_WEEKLY_LIMIT} richieste questa settimana",
+        }
+
+    # Free and Guest: no access
+    return {"allowed": False, "tier": tier, "remaining": 0, "limit": 0, "label": "Non disponibile"}
 
 
 @router.post("/elite/ask")
-async def elite_ask(req: EliteAskRequest):
-    """Elite feature: AI-powered custom match prediction"""
+async def elite_ask(req: EliteAskRequest, request: Request):
+    """Elite feature: AI-powered custom match prediction with tier gating"""
+    # Check auth
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Accesso richiesto")
+
+    tier = user.subscription_tier
+
+    # Guest/Free: blocked
+    if tier in [None, "free"]:
+        raise HTTPException(status_code=403, detail="Funzione disponibile solo per Pro ed Elite")
+
+    # Pro: check weekly limit
+    if tier == "pro":
+        used = await _get_weekly_usage(user.user_id)
+        if used >= PRO_WEEKLY_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Hai raggiunto il limite di {PRO_WEEKLY_LIMIT} richieste settimanali. Passa a Elite per accesso illimitato."
+            )
+
+    # Elite: unlimited — proceed
     try:
         llm_key = os.environ.get('EMERGENT_LLM_KEY')
         if not llm_key:
@@ -48,16 +110,37 @@ async def elite_ask(req: EliteAskRequest):
         user_msg = UserMessage(text=req.query)
         response = await chat.send_message(user_msg)
 
-        return {
-            "query": req.query, "response": response,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "model": "EdgeBet AI v2.0"
+        # Save to history (counts toward weekly limit)
+        chat_entry = {
+            "chat_id": str(uuid.uuid4()),
+            "user_id": user.user_id,
+            "query": req.query,
+            "response": response,
+            "model": "EdgeBet AI v2.0",
+            "created_at": datetime.now(timezone.utc),
         }
+        await db.elite_chats.insert_one(chat_entry)
+
+        # Remaining for Pro
+        remaining = None
+        if tier == "pro":
+            used = await _get_weekly_usage(user.user_id)
+            remaining = max(0, PRO_WEEKLY_LIMIT - used)
+
+        return {
+            "query": req.query,
+            "response": response,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "model": "EdgeBet AI v2.0",
+            "remaining": remaining,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Elite AI error: {e}")
         return {
             "query": req.query,
-            "response": f"\ud83c\udfc6 PREVISIONE: Basandomi sull'analisi dei dati disponibili per '{req.query}', il nostro modello AI suggerisce di attendere ulteriori dati prima di effettuare una previsione definitiva.\n\n\ud83d\udcca PROBABILIT\u00c0: In fase di calcolo\n\u26a0\ufe0f RISCHIO: Medio\n\ud83d\udcb0 QUOTA CONSIGLIATA: Verificare le quote aggiornate\n\ud83e\udde0 ANALISI: Il sistema sta elaborando i dati. Riprova tra qualche secondo.",
+            "response": f"🏆 PREVISIONE: Basandomi sull'analisi dei dati disponibili per '{req.query}', il nostro modello AI suggerisce di attendere ulteriori dati prima di effettuare una previsione definitiva.\n\n📊 PROBABILITÀ: In fase di calcolo\n⚠️ RISCHIO: Medio\n💰 QUOTA CONSIGLIATA: Verificare le quote aggiornate\n🧠 ANALISI: Il sistema sta elaborando i dati. Riprova tra qualche secondo.",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "model": "EdgeBet AI v2.0 (fallback)"
         }

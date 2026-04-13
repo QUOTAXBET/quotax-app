@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { badgesAPI, leaderboardAPI, devAPI } from '../../src/utils/api';
+import { badgesAPI, leaderboardAPI, devAPI, userStatsAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
+import { LineChart } from 'react-native-gifted-charts';
 
 const BADGE_DEFINITIONS_FALLBACK = [
   { badge_id: 'community', name: 'Membro della Community', description: 'Ti sei registrato su EdgeBet!', icon: 'people', category: 'beginner', points: 50 },
@@ -22,6 +23,37 @@ const BADGE_DEFINITIONS_FALLBACK = [
   { badge_id: 'member_pro', name: 'Membro Pro', description: 'Ti sei abbonato al piano Pro!', icon: 'star', category: 'elite', points: 400 },
 ];
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// Animated counter hook
+function useCountUp(target: number, duration: number = 1200, decimals: number = 1) {
+  const [val, setVal] = useState(0);
+  const animRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (target === 0) { setVal(0); return; }
+    let start = 0;
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = target * eased;
+      setVal(current);
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(animate);
+      } else {
+        setVal(target);
+      }
+    };
+    animRef.current = requestAnimationFrame(animate);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [target, duration]);
+
+  return decimals === 0 ? Math.round(val) : parseFloat(val.toFixed(decimals));
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, isPremium, logout, refreshUser } = useAuth();
@@ -31,10 +63,15 @@ export default function ProfileScreen() {
   const [totalPoints, setTotalPoints] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'badges' | 'leaderboard'>('badges');
+  const [activeSection, setActiveSection] = useState<'badges' | 'leaderboard' | 'stats'>('badges');
   const [devOpen, setDevOpen] = useState(false);
   const [switchingTier, setSwitchingTier] = useState<string | null>(null);
+  const [statsData, setStatsData] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const statsEntryAnim = useRef(new Animated.Value(0)).current;
+
+  const isProOrElite = user?.subscription_tier === 'pro' || user?.subscription_tier === 'premium';
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -44,6 +81,33 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => { fetchData(); }, []);
+
+  // Fetch stats when tab becomes active
+  const fetchStats = useCallback(async () => {
+    if (!user?.user_id || !isProOrElite) return;
+    setStatsLoading(true);
+    statsEntryAnim.setValue(0);
+    try {
+      const data = await userStatsAPI.get(user.user_id);
+      setStatsData(data);
+      // Animate entry
+      Animated.timing(statsEntryAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    } catch (e) {
+      console.error('Stats fetch error:', e);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [user?.user_id, isProOrElite]);
+
+  useEffect(() => {
+    if (activeSection === 'stats' && !statsData && isProOrElite) {
+      fetchStats();
+    }
+  }, [activeSection, isProOrElite]);
 
   const fetchData = async () => {
     try {
@@ -245,6 +309,12 @@ export default function ProfileScreen() {
             <Ionicons name="podium" size={16} color={activeSection === 'leaderboard' ? colors.background : colors.textMuted} />
             <Text style={[st.toggleText, activeSection === 'leaderboard' && st.toggleTextActive]}>Classifica</Text>
           </TouchableOpacity>
+          {isProOrElite && (
+            <TouchableOpacity style={[st.toggleBtn, activeSection === 'stats' && st.toggleActiveGold]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveSection('stats'); }}>
+              <Ionicons name="analytics" size={16} color={activeSection === 'stats' ? colors.background : colors.gold} />
+              <Text style={[st.toggleText, activeSection === 'stats' && st.toggleTextActive, activeSection !== 'stats' && { color: colors.gold }]}>Stats</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Badges Grid */}
@@ -312,8 +382,212 @@ export default function ProfileScreen() {
             ))}
           </View>
         )}
+
+        {/* Stats Section (Pro/Elite) */}
+        {activeSection === 'stats' && isProOrElite && (
+          <StatsSection
+            statsData={statsData}
+            statsLoading={statsLoading}
+            statsEntryAnim={statsEntryAnim}
+            onRefresh={fetchStats}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Stats Section Component
+function StatsSection({ statsData, statsLoading, statsEntryAnim, onRefresh }: { statsData: any; statsLoading: boolean; statsEntryAnim: Animated.Value; onRefresh: () => void }) {
+  const roiValue = useCountUp(statsData?.roi_monthly || 0, 1400, 1);
+  const winRateValue = useCountUp(statsData?.win_rate || 0, 1200, 1);
+  const profitValue = useCountUp(statsData?.profit_net || 0, 1600, 2);
+  const totalBetsValue = useCountUp(statsData?.total_bets || 0, 1000, 0);
+  const streakValue = useCountUp(statsData?.streak || 0, 800, 0);
+
+  if (statsLoading || !statsData) {
+    return (
+      <View style={st.statsContainer}>
+        {/* Skeleton loaders */}
+        {[1, 2, 3].map(i => (
+          <View key={i} style={st.statsSkeleton}>
+            <View style={st.skeletonShine} />
+          </View>
+        ))}
+        <ActivityIndicator size="large" color={colors.gold} style={{ marginTop: 20 }} />
+        <Text style={st.statsLoadText}>Caricamento statistiche...</Text>
+      </View>
+    );
+  }
+
+  const roiPositive = (statsData?.roi_monthly || 0) >= 0;
+  const profitPositive = (statsData?.profit_net || 0) >= 0;
+  const weeklyRoiPositive = (statsData?.roi_weekly || 0) >= 0;
+
+  // Prepare chart data
+  const chartData = (statsData?.roi_history || []).map((item: any, idx: number) => ({
+    value: item.roi,
+    label: idx % 5 === 0 ? `G${item.day}` : '',
+    labelTextStyle: { color: colors.textMuted, fontSize: 8 },
+  }));
+
+  const chartWidth = SCREEN_WIDTH - 80;
+
+  return (
+    <Animated.View style={[st.statsContainer, { opacity: statsEntryAnim, transform: [{ translateY: statsEntryAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
+      {/* Header */}
+      <View style={st.statsHeader}>
+        <View style={st.statsHeaderLeft}>
+          <Ionicons name="analytics" size={20} color={colors.gold} />
+          <Text style={st.statsTitle}>Le Tue Statistiche</Text>
+        </View>
+        <TouchableOpacity onPress={onRefresh} style={st.refreshBtn} activeOpacity={0.7}>
+          <Ionicons name="refresh" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Main Stats Cards Row */}
+      <View style={st.statsCardsRow}>
+        {/* ROI Card */}
+        <View style={[st.statCard, st.statCardMain]}>
+          <View style={st.statCardHeader}>
+            <Ionicons name="trending-up" size={16} color={roiPositive ? colors.profit : colors.loss} />
+            <Text style={st.statCardLabel}>ROI Mensile</Text>
+          </View>
+          <Text style={[st.statCardValue, { color: roiPositive ? colors.profit : colors.loss }]}>
+            {roiPositive ? '+' : ''}{roiValue}%
+          </Text>
+          <View style={[st.statCardTrend, { backgroundColor: weeklyRoiPositive ? 'rgba(0,255,136,0.1)' : 'rgba(255,77,77,0.1)' }]}>
+            <Ionicons name={weeklyRoiPositive ? 'arrow-up' : 'arrow-down'} size={10} color={weeklyRoiPositive ? colors.profit : colors.loss} />
+            <Text style={[st.statCardTrendText, { color: weeklyRoiPositive ? colors.profit : colors.loss }]}>
+              {weeklyRoiPositive ? '+' : ''}{statsData?.roi_weekly}% sett.
+            </Text>
+          </View>
+        </View>
+
+        {/* Win Rate Card */}
+        <View style={[st.statCard, st.statCardMain]}>
+          <View style={st.statCardHeader}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+            <Text style={st.statCardLabel}>Win Rate</Text>
+          </View>
+          <Text style={[st.statCardValue, { color: colors.primary }]}>{winRateValue}%</Text>
+          <View style={st.winRateBar}>
+            <View style={[st.winRateFill, { width: `${Math.min(statsData?.win_rate || 0, 100)}%` }]} />
+          </View>
+          <Text style={st.statCardSub}>{statsData?.wins}V / {statsData?.losses}P</Text>
+        </View>
+      </View>
+
+      {/* Secondary Stats Row */}
+      <View style={st.statsCardsRow}>
+        {/* Profit Card */}
+        <View style={st.statCard}>
+          <View style={st.statCardHeader}>
+            <Ionicons name="cash" size={14} color={profitPositive ? colors.profit : colors.loss} />
+            <Text style={st.statCardLabel}>Profitto Netto</Text>
+          </View>
+          <Text style={[st.statCardValueSm, { color: profitPositive ? colors.profit : colors.loss }]}>
+            {profitPositive ? '+' : ''}{profitValue.toLocaleString()}
+          </Text>
+        </View>
+
+        {/* Total Bets */}
+        <View style={st.statCard}>
+          <View style={st.statCardHeader}>
+            <Ionicons name="receipt" size={14} color={colors.textSecondary} />
+            <Text style={st.statCardLabel}>Scommesse</Text>
+          </View>
+          <Text style={st.statCardValueSm}>{totalBetsValue}</Text>
+        </View>
+
+        {/* Streak */}
+        <View style={st.statCard}>
+          <View style={st.statCardHeader}>
+            <Ionicons name="flame" size={14} color={colors.gold} />
+            <Text style={st.statCardLabel}>Serie</Text>
+          </View>
+          <Text style={[st.statCardValueSm, { color: colors.gold }]}>{streakValue}</Text>
+        </View>
+      </View>
+
+      {/* ROI Chart */}
+      <View style={st.chartCard}>
+        <View style={st.chartHeader}>
+          <Ionicons name="bar-chart" size={16} color={colors.primary} />
+          <Text style={st.chartTitle}>Andamento ROI (30 giorni)</Text>
+        </View>
+        <View style={st.chartWrap}>
+          <LineChart
+            data={chartData}
+            width={chartWidth}
+            height={160}
+            spacing={chartWidth / Math.max(chartData.length - 1, 1)}
+            color={colors.primary}
+            thickness={2}
+            startFillColor={'rgba(0,255,136,0.2)'}
+            endFillColor={'rgba(0,255,136,0.01)'}
+            areaChart
+            hideDataPoints
+            yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
+            xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 8 }}
+            yAxisColor={'transparent'}
+            xAxisColor={colors.border}
+            rulesColor={colors.border}
+            rulesType="dashed"
+            noOfSections={4}
+            curved
+            initialSpacing={0}
+            endSpacing={0}
+            adjustToWidth
+          />
+        </View>
+      </View>
+
+      {/* Best Pick Card */}
+      {statsData?.best_pick && (
+        <View style={st.bestPickCard}>
+          <View style={st.bestPickHeader}>
+            <Ionicons name="star" size={16} color={colors.gold} />
+            <Text style={st.bestPickTitle}>Miglior Pick del Mese</Text>
+          </View>
+          <View style={st.bestPickContent}>
+            <View style={st.bestPickMatch}>
+              <Ionicons name="football" size={14} color={colors.textSecondary} />
+              <Text style={st.bestPickMatchText}>{statsData.best_pick.match}</Text>
+            </View>
+            <View style={st.bestPickDetails}>
+              <View style={st.bestPickDetail}>
+                <Text style={st.bestPickDetailLabel}>Esito</Text>
+                <Text style={st.bestPickDetailValue}>{statsData.best_pick.outcome}</Text>
+              </View>
+              <View style={st.bestPickDetail}>
+                <Text style={st.bestPickDetailLabel}>Quota</Text>
+                <Text style={st.bestPickDetailValue}>{statsData.best_pick.odds}</Text>
+              </View>
+              <View style={st.bestPickDetail}>
+                <Text style={st.bestPickDetailLabel}>Profitto</Text>
+                <Text style={[st.bestPickDetailValue, { color: colors.profit }]}>+{statsData.best_pick.profit}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Additional Info */}
+      <View style={st.statsFooter}>
+        <View style={st.statsFooterRow}>
+          <Text style={st.statsFooterLabel}>Quota Media</Text>
+          <Text style={st.statsFooterValue}>{statsData?.avg_odds}</Text>
+        </View>
+        <View style={st.statsFooterRow}>
+          <Text style={st.statsFooterLabel}>Stake Medio</Text>
+          <Text style={st.statsFooterValue}>{statsData?.avg_stake}</Text>
+        </View>
+      </View>
+
+      <Text style={st.statsDisclaimer}>Statistiche simulate a scopo dimostrativo. Non rappresentano risultati reali.</Text>
+    </Animated.View>
   );
 }
 
@@ -361,6 +635,7 @@ const st = StyleSheet.create({
   toggleRow: { flexDirection: 'row', marginHorizontal: 20, gap: 8, marginBottom: 14 },
   toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   toggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  toggleActiveGold: { backgroundColor: colors.gold, borderColor: colors.gold },
   toggleText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   toggleTextActive: { color: colors.background, fontWeight: '700' },
   // Dev Panel
@@ -420,4 +695,44 @@ const st = StyleSheet.create({
   leaderROI: { color: colors.primary, fontSize: 16, fontWeight: '800' },
   leaderWR: { color: colors.textSecondary, fontSize: 10, marginTop: 2 },
   leaderStreak: { color: colors.gold, fontSize: 9, fontWeight: '700', marginTop: 2 },
+  // Stats Section
+  statsContainer: { marginHorizontal: 20, gap: 12 },
+  statsSkeleton: { height: 80, backgroundColor: colors.card, borderRadius: 16, marginBottom: 10, overflow: 'hidden' },
+  skeletonShine: { width: '40%', height: '100%', backgroundColor: 'rgba(255,255,255,0.03)' },
+  statsLoadText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 },
+  statsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  statsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statsTitle: { color: colors.gold, fontSize: 17, fontWeight: '800' },
+  refreshBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  statsCardsRow: { flexDirection: 'row', gap: 10 },
+  statCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border, gap: 6 },
+  statCardMain: { padding: 16, borderColor: 'rgba(0,255,136,0.12)' },
+  statCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statCardLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '600', textTransform: 'uppercase' },
+  statCardValue: { color: colors.textPrimary, fontSize: 28, fontWeight: '900', letterSpacing: -1 },
+  statCardValueSm: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
+  statCardSub: { color: colors.textMuted, fontSize: 10 },
+  statCardTrend: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statCardTrendText: { fontSize: 10, fontWeight: '700' },
+  winRateBar: { height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
+  winRateFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2 },
+  chartCard: { backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
+  chartHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  chartTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  chartWrap: { marginLeft: -8, overflow: 'hidden' },
+  bestPickCard: { backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  bestPickHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  bestPickTitle: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+  bestPickContent: { gap: 10 },
+  bestPickMatch: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bestPickMatchText: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  bestPickDetails: { flexDirection: 'row', gap: 12 },
+  bestPickDetail: { flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 10, alignItems: 'center', gap: 4 },
+  bestPickDetailLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '600', textTransform: 'uppercase' },
+  bestPickDetailValue: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+  statsFooter: { backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, gap: 8 },
+  statsFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statsFooterLabel: { color: colors.textMuted, fontSize: 12 },
+  statsFooterValue: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  statsDisclaimer: { color: colors.textMuted, fontSize: 9, textAlign: 'center', fontStyle: 'italic', marginTop: 4, opacity: 0.6 },
 });

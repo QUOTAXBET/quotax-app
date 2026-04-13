@@ -127,6 +127,11 @@ export const valueBetsAPI = {
   getAll: async () => (await api.get('/value-bets')).data,
 };
 
+// User Stats (Pro/Elite)
+export const userStatsAPI = {
+  get: async (userId: string) => (await api.get(`/stats/user/${userId}`)).data,
+};
+
 // AI
 export const aiAPI = {
   getPredictions: async () => (await api.get('/ai/predictions')).data,
@@ -166,6 +171,8 @@ export const eliteAPI = {
     (await api.post('/elite/save', { user_id: userId, query, response, model })).data,
   getHistory: async (userId: string) =>
     (await api.get(`/elite/history/${userId}`)).data,
+  checkAccess: async (userId: string) =>
+    (await api.get(`/elite/access/${userId}`)).data,
 };
 
 // Badges & Gamification

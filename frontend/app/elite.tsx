@@ -25,13 +25,18 @@ export default function EliteScreen() {
   const [response, setResponse] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [badgePopup, setBadgePopup] = useState<any>(null);
+  const [access, setAccess] = useState<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scrollRef = useRef<ScrollView>(null);
 
-  // Load persistent history on mount
+  const userTier = !isAuthenticated ? 'guest' : (user?.subscription_tier || 'free');
+  const canUse = userTier === 'pro' || userTier === 'premium';
+
+  // Check access and load history
   useEffect(() => {
     if (user?.user_id) {
+      eliteAPI.checkAccess(user.user_id).then(setAccess).catch(() => {});
       eliteAPI.getHistory(user.user_id).then(data => {
         if (data?.history) setHistory(data.history.map((h: any) => ({ query: h.query, response: { response: h.response, model: h.model, generated_at: h.created_at }, timestamp: h.created_at })));
       }).catch(() => {});
@@ -51,13 +56,12 @@ export default function EliteScreen() {
       const result = await eliteAPI.ask(query.trim());
       setResponse(result);
       setHistory(prev => [{ query: query.trim(), response: result, timestamp: new Date() }, ...prev].slice(0, 20));
-
-      // Save to MongoDB
-      if (user?.user_id) {
-        try { await eliteAPI.saveChat(user.user_id, query.trim(), result.response, result.model); } catch {}
-      }
-
       setQuery('');
+
+      // Update remaining count for Pro
+      if (result.remaining !== undefined && result.remaining !== null) {
+        setAccess((prev: any) => prev ? { ...prev, remaining: result.remaining, used: (prev.limit || 3) - result.remaining } : prev);
+      }
 
       // Animate response in
       Animated.parallel([
@@ -74,8 +78,53 @@ export default function EliteScreen() {
           }
         } catch {}
       }
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e: any) {
+      // Handle 429 (rate limit) and 403 (no access)
+      const status = e?.response?.status;
+      const msg = e?.response?.data?.detail;
+      if (status === 429 || status === 403) {
+        setResponse({ query: query.trim(), response: msg || 'Limite raggiunto', error: true });
+      }
+      console.error(e);
+    } finally { setLoading(false); }
   };
+
+  // Locked screen for Guest/Free
+  if (!canUse) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <View style={s.headerCenter}>
+            <Ionicons name="diamond" size={20} color={colors.gold} />
+            <Text style={s.headerTitle}>Elite AI</Text>
+          </View>
+          <View style={{ width: 60 }} />
+        </View>
+        <View style={s.lockedContainer}>
+          <View style={s.lockedIconWrap}><Ionicons name="lock-closed" size={40} color={colors.gold} /></View>
+          <Text style={s.lockedTitle}>AI Personalizzata</Text>
+          <Text style={s.lockedSub}>Chiedi all'AI qualsiasi previsione sportiva. Analisi personalizzate basate su dati avanzati.</Text>
+          <View style={s.lockedTiers}>
+            <View style={s.lockedTierRow}>
+              <Ionicons name="star" size={16} color="#9B59B6" />
+              <Text style={s.lockedTierText}><Text style={{ fontWeight: '800', color: '#9B59B6' }}>Pro</Text> — 3 richieste a settimana</Text>
+            </View>
+            <View style={s.lockedTierRow}>
+              <Ionicons name="diamond" size={16} color={colors.gold} />
+              <Text style={s.lockedTierText}><Text style={{ fontWeight: '800', color: colors.gold }}>Elite</Text> — richieste illimitate</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={s.lockedCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/subscribe'); }}>
+            <Text style={s.lockedCTAText}>{isAuthenticated ? 'Attiva Pro ora' : 'Registrati gratis'}</Text>
+          </TouchableOpacity>
+        </View>
+        {badgePopup && <BadgeUnlockPopup badge={badgePopup} onDismiss={() => setBadgePopup(null)} />}
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -88,7 +137,10 @@ export default function EliteScreen() {
           <Text style={s.headerTitle}>Elite AI</Text>
         </View>
         <View style={s.headerRight}>
-          <View style={s.eliteBadge}><Text style={s.eliteBadgeText}>ELITE</Text></View>
+          {userTier === 'pro' && access && (
+            <View style={s.proBadge}><Text style={s.proBadgeText}>{access.remaining ?? '?'}/{access.limit ?? 3}</Text></View>
+          )}
+          <View style={s.eliteBadge}><Text style={s.eliteBadgeText}>{userTier === 'premium' ? 'ELITE' : 'PRO'}</Text></View>
         </View>
       </View>
 
@@ -220,7 +272,9 @@ const s = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
-  headerRight: {},
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  proBadge: { backgroundColor: 'rgba(155,89,182,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  proBadgeText: { color: '#9B59B6', fontSize: 10, fontWeight: '800' },
   eliteBadge: { backgroundColor: colors.gold, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   eliteBadgeText: { color: colors.background, fontSize: 10, fontWeight: '800' },
   body: { flex: 1, padding: 16 },
@@ -268,4 +322,14 @@ const s = StyleSheet.create({
   premiumGateCTAText: { color: colors.background, fontWeight: '800', fontSize: 14 },
   disclaimer: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   disclaimerText: { color: colors.textMuted, fontSize: 9, textAlign: 'center' },
+  // Locked screen
+  lockedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, gap: 14 },
+  lockedIconWrap: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,215,0,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)' },
+  lockedTitle: { color: colors.textPrimary, fontSize: 24, fontWeight: '900' },
+  lockedSub: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  lockedTiers: { gap: 10, marginTop: 8 },
+  lockedTierRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lockedTierText: { color: colors.textSecondary, fontSize: 14 },
+  lockedCTA: { backgroundColor: colors.gold, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, marginTop: 12 },
+  lockedCTAText: { color: colors.background, fontWeight: '900', fontSize: 16 },
 });

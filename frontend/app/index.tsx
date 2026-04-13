@@ -48,8 +48,6 @@ export default function LandingPage() {
   const stat1Translate = useRef(new Animated.Value(40)).current;
   const stat2Translate = useRef(new Animated.Value(40)).current;
   const stat3Translate = useRef(new Animated.Value(40)).current;
-  // Carousel fade
-  const carouselFade = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) { router.replace('/(tabs)'); return; }
@@ -97,13 +95,10 @@ export default function LandingPage() {
       Animated.timing(logoGlow, { toValue: 1, duration: 1500, useNativeDriver: true }),
       Animated.timing(logoGlow, { toValue: 0.4, duration: 1500, useNativeDriver: true }),
     ])).start();
-    // Carousel autoplay with fade
+    // Carousel autoplay — smooth, no fade
     const interval = setInterval(() => {
-      Animated.timing(carouselFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        setCarouselIdx(prev => (prev + 1) % WINS.length);
-        Animated.timing(carouselFade, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-      });
-    }, 3000);
+      setCarouselIdx(prev => (prev + 1) % WINS.length);
+    }, 5000);
     return () => clearInterval(interval);
   };
 
@@ -163,13 +158,13 @@ export default function LandingPage() {
           <Text style={st.liveText}>{liveSchedine} schedine disponibili ora</Text>
         </View>
 
-        {/* Win Carousel — 3D effect with fade */}
+        {/* Win Carousel — smooth transition */}
         <View style={st.carousel}>
-          <Animated.View style={[st.carouselCard, { opacity: carouselFade }]}>
+          <View style={st.carouselCard}>
             <Text style={st.carouselTitle}>Ultima vincita verificata</Text>
             <Text style={st.carouselAmount}>{WINS[carouselIdx].amount}</Text>
             <Text style={st.carouselDetail}>{WINS[carouselIdx].detail}</Text>
-          </Animated.View>
+          </View>
           <View style={st.dots}>
             {WINS.map((_, i) => <View key={i} style={[st.dot, i === carouselIdx && st.dotActive]} />)}
           </View>

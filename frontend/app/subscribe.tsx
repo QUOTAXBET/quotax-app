@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { colors } from '../src/utils/theme';
 
 export default function SubscribeScreen() {
   const router = useRouter();
+  const { plan: planFilter } = useLocalSearchParams<{ plan?: string }>();
   const { user, isAuthenticated, refreshUser } = useAuth();
   const [plans, setPlans] = useState<any[]>([]);
   const [trial, setTrial] = useState<any>(null);
@@ -38,7 +39,14 @@ export default function SubscribeScreen() {
   const fetchPlans = async () => {
     try {
       const data = await subscriptionAPI.getPlans();
-      setPlans(data.plans || []);
+      let allPlans = data.plans || [];
+      // Filter plans if a specific plan is requested via query param
+      if (planFilter === 'elite') {
+        allPlans = allPlans.filter((p: any) => p.tier === 'premium');
+      } else if (planFilter === 'pro') {
+        allPlans = allPlans.filter((p: any) => p.tier === 'pro');
+      }
+      setPlans(allPlans);
       setTrial(data.trial);
     } catch (e) {
       console.error(e);

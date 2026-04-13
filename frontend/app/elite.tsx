@@ -118,7 +118,7 @@ export default function EliteScreen() {
             </View>
           </View>
           <TouchableOpacity style={s.lockedCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/subscribe'); }}>
-            <Text style={s.lockedCTAText}>{isAuthenticated ? 'Attiva Pro ora' : 'Registrati gratis'}</Text>
+            <Text style={s.lockedCTAText}>{isAuthenticated ? 'Attiva ora' : 'Registrati gratis'}</Text>
           </TouchableOpacity>
         </View>
         {badgePopup && <BadgeUnlockPopup visible={!!badgePopup} badge={badgePopup} onClose={() => setBadgePopup(null)} />}

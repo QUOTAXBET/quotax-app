@@ -138,7 +138,7 @@ export default function ValueBetsScreen() {
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <TouchableOpacity
               style={st.lockedBanner}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/subscribe'); }}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/subscribe?plan=elite'); }}
               activeOpacity={0.8}
             >
               <Ionicons name="diamond" size={32} color={colors.gold} />

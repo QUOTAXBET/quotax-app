@@ -343,7 +343,7 @@ export default function ProfileScreen() {
                 <Ionicons name="gift" size={20} color={colors.gold} />
                 <Text style={st.prizeTitle}>Completa tutti i badge</Text>
               </View>
-              <Text style={st.prizeReward}>Premio: 1 mese gratis di Pro!</Text>
+              <Text style={st.prizeReward}>Premio: 1 mese gratis di Elite!</Text>
               <View style={st.progressBarBg}>
                 <View style={[st.progressBarFill, { width: `${Math.min((badges.length / definitions.length) * 100, 100)}%` }]} />
               </View>

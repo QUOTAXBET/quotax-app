@@ -122,6 +122,11 @@ export const opportunitiesAPI = {
   getDaily: async () => (await api.get('/opportunities')).data,
 };
 
+// Value Bets (Elite)
+export const valueBetsAPI = {
+  getAll: async () => (await api.get('/value-bets')).data,
+};
+
 // AI
 export const aiAPI = {
   getPredictions: async () => (await api.get('/ai/predictions')).data,

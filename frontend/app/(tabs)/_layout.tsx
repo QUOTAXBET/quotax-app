@@ -46,13 +46,25 @@ export default function TabLayout() {
       <Tabs.Screen
         name="live"
         options={{
-          title: 'Top Picks',
+          title: 'Quote AI',
           tabBarIcon: ({ color, size }) => (
             <View>
-              <Ionicons name="diamond" size={size} color={color} />
-              <View style={tabStyles.goldDot} />
+              <Ionicons name="flame" size={size} color={color} />
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="valuebets"
+        options={{
+          title: 'Value Bets',
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="flash" size={size} color={color} />
+              <View style={tabStyles.eliteDot} />
+            </View>
+          ),
+          tabBarActiveTintColor: '#FFD700',
         }}
       />
       <Tabs.Screen
@@ -68,4 +80,5 @@ export default function TabLayout() {
 
 const tabStyles = StyleSheet.create({
   goldDot: { position: 'absolute', top: -2, right: -4, width: 7, height: 7, borderRadius: 4, backgroundColor: '#FFD700' },
+  eliteDot: { position: 'absolute', top: -2, right: -4, width: 7, height: 7, borderRadius: 4, backgroundColor: '#FFD700' },
 });

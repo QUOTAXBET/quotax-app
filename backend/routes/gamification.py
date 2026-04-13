@@ -17,6 +17,7 @@ BADGE_DEFINITIONS = [
     {"badge_id": "streak_7", "name": "Inarrestabile", "description": "7 giorni consecutivi di utilizzo!", "icon": "rocket", "category": "advanced", "points": 400},
     {"badge_id": "profit_master", "name": "Re del Profitto", "description": "ROI personale sopra il 20%!", "icon": "trending-up", "category": "advanced", "points": 500},
     {"badge_id": "elite_user", "name": "Membro Elite", "description": "Hai usato la funzione Elite AI!", "icon": "diamond", "category": "elite", "points": 500},
+    {"badge_id": "member_pro", "name": "Membro Pro", "description": "Ti sei abbonato al piano Pro!", "icon": "star", "category": "elite", "points": 400},
 ]
 
 # Total possible points: 2800

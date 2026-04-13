@@ -109,6 +109,7 @@ export default function SchedineAIScreen() {
     <SafeAreaView style={st.container} edges={['top']}>
       <View style={st.header}>
         <View style={st.headerLeft}><Ionicons name="layers" size={22} color={colors.primary} /><Text style={st.title}>Schedine AI</Text></View>
+        <View style={st.headerCounter}><Text style={st.headerCounterText}>{schedine.length} totali</Text></View>
       </View>
       <View style={{ padding: 20 }}><SkeletonSchedinaCard /><SkeletonSchedinaCard /><SkeletonSchedinaCard /></View>
     </SafeAreaView>
@@ -158,7 +159,7 @@ export default function SchedineAIScreen() {
       {/* Subtabs: Disponibili / Archivio */}
       <View style={st.subTabRow}>
         {([
-          { key: 'disponibili', label: 'Disponibili', icon: 'time' },
+          { key: 'disponibili', label: 'Schedine giocate', icon: 'time' },
           { key: 'archivio', label: 'Archivio', icon: 'archive' },
         ] as { key: SubTab; label: string; icon: string }[]).map(sub => (
           <TouchableOpacity
@@ -296,6 +297,8 @@ const st = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+  headerCounter: { backgroundColor: 'rgba(0,255,136,0.12)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
+  headerCounterText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
   headerBadge: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
   headerBadgeText: { color: colors.background, fontSize: 11, fontWeight: '700' },
   monthlyStats: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, padding: 12, backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.12)', marginBottom: 8 },

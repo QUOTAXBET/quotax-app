@@ -111,7 +111,10 @@ export default function PronosticiScreen() {
       <View style={s.header}>
         <View style={s.logo}>
           <Ionicons name="analytics" size={22} color={colors.primary} />
-          <Text style={s.logoText}>Pronostici</Text>
+          <View>
+            <Text style={s.logoText}>Pronostici AI</Text>
+            <Text style={s.logoSub}>Analisi basata su oltre 40 variabili per evento</Text>
+          </View>
         </View>
         <View style={s.headerRight}>
           <TouchableOpacity style={s.bellBtn} onPress={() => router.push('/notifications')}>
@@ -141,13 +144,11 @@ export default function PronosticiScreen() {
         </View>
       )}
 
-      {/* Social ticker */}
-      {social?.activities?.[0] && (
-        <View style={s.socialTicker}>
-          <Ionicons name="flash" size={13} color={colors.primary} />
-          <Text style={s.socialTickerText} numberOfLines={1}>{social.activities[0].user} ha vinto +€{social.activities[0].amount?.toFixed(0)} — {social.activities[0].time}</Text>
-        </View>
-      )}
+      {/* Info Box */}
+      <View style={s.infoBox}>
+        <Ionicons name="information-circle" size={16} color={colors.primary} />
+        <Text style={s.infoBoxText}>Qui trovi pronostici generati dalla nostra AI analizzando oltre 40 variabili tra dati statistici, forma squadre e valore quote.</Text>
+      </View>
 
       <SportFilter selected={selectedSport} onSelect={setSelectedSport} />
 
@@ -281,10 +282,10 @@ export default function PronosticiScreen() {
                     <View style={s.blurLines}><View style={[s.blurLine, { width: '75%' }]} /><View style={[s.blurLine, { width: '50%' }]} /><View style={[s.blurLine, { width: '85%' }]} /></View>
                     <View style={s.lockedOverlay}>
                       <Ionicons name="lock-closed" size={18} color={colors.gold} />
-                      <Text style={s.lockedTitle}>{'🔒 PRONOSTICO PREMIUM'}</Text>
-                      <Text style={s.lockedHint}>{'💡 L\'AI rileva valore su questa partita'}</Text>
+                      <Text style={s.lockedTitle}>{'🔒 Analisi AI Premium'}</Text>
+                      <Text style={s.lockedHint}>{"L'AI ha individuato un possibile vantaggio su questa giocata"}</Text>
                       <TouchableOpacity style={s.lockedCTABtn} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
-                        <Text style={s.lockedCTAText}>{isAuthenticated ? 'Sblocca analisi AI' : 'Registrati per sbloccare'}</Text>
+                        <Text style={s.lockedCTAText}>{isAuthenticated ? 'Sblocca analisi AI' : 'Registrati gratis per sbloccare'}</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -407,6 +408,9 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
   logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoText: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+  logoSub: { color: colors.textMuted, fontSize: 10, marginTop: 1 },
+  infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 4, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: 'rgba(0,255,136,0.04)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,255,136,0.08)' },
+  infoBoxText: { color: colors.textMuted, fontSize: 11, flex: 1, lineHeight: 16 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: colors.loss, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },

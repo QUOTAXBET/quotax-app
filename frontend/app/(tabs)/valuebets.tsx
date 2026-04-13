@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,10 +7,35 @@ import * as Haptics from 'expo-haptics';
 import { valueBetsAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { useAuth } from '../../src/context/AuthContext';
-import { SkeletonTopPickCard } from '../../src/components/Skeleton';
 
 const getSportIcon = (sport: string) => sport === 'soccer' ? 'football' : sport === 'nba' ? 'basketball' : 'fitness';
 const getRiskColor = (risk: string) => risk === 'low' ? colors.primary : risk === 'medium' ? '#FFB800' : '#FF4D4D';
+
+// Shimmer skeleton for Value Bet cards
+function ValueBetSkeleton() {
+  const shimmer = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(shimmer, { toValue: 1, duration: 1000, useNativeDriver: false }),
+      Animated.timing(shimmer, { toValue: 0, duration: 1000, useNativeDriver: false }),
+    ])).start();
+  }, []);
+  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] });
+
+  return (
+    <Animated.View style={[st.skeletonCard, { opacity }]}>      
+      <View style={st.skeletonRow}>
+        <View style={[st.skeletonLine, { width: 70, height: 22, borderRadius: 10 }]} />
+        <View style={[st.skeletonLine, { width: 100, height: 14 }]} />
+      </View>
+      <View style={[st.skeletonLine, { width: '65%', height: 18, marginTop: 12 }]} />
+      <View style={[st.skeletonLine, { width: '100%', height: 80, borderRadius: 16, marginTop: 14 }]} />
+      <View style={[st.skeletonLine, { width: '100%', height: 60, borderRadius: 16, marginTop: 10 }]} />
+      <View style={[st.skeletonLine, { width: '100%', height: 50, borderRadius: 16, marginTop: 10 }]} />
+      <View style={[st.skeletonLine, { width: '100%', height: 70, borderRadius: 14, marginTop: 10 }]} />
+    </Animated.View>
+  );
+}
 
 export default function ValueBetsScreen() {
   const router = useRouter();
@@ -19,6 +44,9 @@ export default function ValueBetsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  // Staggered card entry animations
+  const cardAnims = useRef<Animated.Value[]>([]).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   const userTier = !isAuthenticated ? 'guest' : (user?.subscription_tier || 'free');
   const isElite = userTier === 'premium';
@@ -35,13 +63,33 @@ export default function ValueBetsScreen() {
     try {
       const res = await valueBetsAPI.getAll();
       setData(res);
+      // Setup staggered animations for cards
+      const bets = res?.value_bets || [];
+      while (cardAnims.length < bets.length) {
+        cardAnims.push(new Animated.Value(0));
+      }
+      // Trigger staggered entry
+      setTimeout(() => {
+        Animated.stagger(120, cardAnims.slice(0, bets.length).map(a =>
+          Animated.spring(a, { toValue: 1, friction: 7, tension: 60, useNativeDriver: true })
+        )).start();
+        // Glow pulse
+        Animated.loop(Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 1500, useNativeDriver: false }),
+        ])).start();
+      }, 100);
     } catch (e) {}
     setLoading(false);
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Reset card anims
+    cardAnims.forEach(a => a.setValue(0));
     await fetchData();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setRefreshing(false);
   }, []);
 
@@ -53,7 +101,7 @@ export default function ValueBetsScreen() {
           <Text style={st.title}>Value Bets AI</Text>
         </View>
       </View>
-      <View style={{ padding: 16 }}><SkeletonTopPickCard /><SkeletonTopPickCard /><SkeletonTopPickCard /></View>
+      <View style={{ padding: 16 }}><ValueBetSkeleton /><ValueBetSkeleton /><ValueBetSkeleton /></View>
     </SafeAreaView>
   );
 
@@ -134,13 +182,19 @@ export default function ValueBetsScreen() {
         contentContainerStyle={st.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {bets.map((vb: any, idx: number) => (
+        {bets.map((vb: any, idx: number) => {
+          const anim = cardAnims[idx] || new Animated.Value(1);
+          const glowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.2] });
+          return (
+          <Animated.View key={vb.value_bet_id} style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }] }}>
           <TouchableOpacity
-            key={vb.value_bet_id}
             style={st.card}
             onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
             activeOpacity={0.9}
           >
+            {/* Neon glow line at top */}
+            <Animated.View style={[st.cardGlowLine, { opacity: glowOpacity }]} />
+
             {/* Header */}
             <View style={st.cardHeader}>
               <View style={st.sportTag}>
@@ -179,13 +233,15 @@ export default function ValueBetsScreen() {
                 </View>
               </View>
               <View style={st.valueDetected}>
+                <View style={st.valueGlow} />
                 <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
                 <Text style={st.valueLabel}>Valore rilevato</Text>
               </View>
             </View>
 
-            {/* Edge */}
+            {/* Edge with glow */}
             <View style={st.edgeBanner}>
+              <View style={st.edgeGlow} />
               <View style={st.edgeIcon}><Ionicons name="analytics" size={18} color={colors.primary} /></View>
               <View style={st.edgeContent}>
                 <Text style={st.edgeLabel}>Edge sul mercato</Text>
@@ -219,7 +275,9 @@ export default function ValueBetsScreen() {
               </View>
             )}
           </TouchableOpacity>
-        ))}
+          </Animated.View>
+          );
+        })}
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -246,8 +304,13 @@ const st = StyleSheet.create({
   lockedSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20 },
   lockedBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.gold, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, marginTop: 8 },
   lockedBtnText: { color: colors.background, fontSize: 15, fontWeight: '800' },
+  // Skeleton
+  skeletonCard: { backgroundColor: colors.card, borderRadius: 22, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
+  skeletonRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  skeletonLine: { backgroundColor: colors.border, borderRadius: 8, height: 14 },
   // Card
-  card: { backgroundColor: colors.card, borderRadius: 22, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.12)' },
+  card: { backgroundColor: colors.card, borderRadius: 22, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.12)', overflow: 'hidden', position: 'relative' },
+  cardGlowLine: { position: 'absolute', top: 0, left: '10%', width: '80%', height: 2, backgroundColor: colors.gold, borderRadius: 1 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   sportTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFD700', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   sportTagText: { color: colors.background, fontSize: 10, fontWeight: '800' },
@@ -267,10 +330,12 @@ const st = StyleSheet.create({
   oddsLabel: { color: colors.textMuted, fontSize: 10, marginBottom: 4, fontWeight: '600' },
   oddsValue: { color: colors.textPrimary, fontSize: 22, fontWeight: '900' },
   oddsDivider: { paddingHorizontal: 12 },
-  valueDetected: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  valueDetected: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, position: 'relative' },
+  valueGlow: { position: 'absolute', bottom: -4, left: '25%', width: '50%', height: 12, backgroundColor: colors.primary, borderRadius: 6, opacity: 0.08 },
   valueLabel: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   // Edge
-  edgeBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,255,136,0.06)', borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,255,136,0.15)', gap: 12 },
+  edgeBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,255,136,0.06)', borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,255,136,0.15)', gap: 12, overflow: 'hidden', position: 'relative' },
+  edgeGlow: { position: 'absolute', left: -20, top: '20%', width: 60, height: '60%', backgroundColor: colors.primary, borderRadius: 30, opacity: 0.06 },
   edgeIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,255,136,0.12)', alignItems: 'center', justifyContent: 'center' },
   edgeContent: { flex: 1 },
   edgeLabel: { color: colors.textSecondary, fontSize: 11 },

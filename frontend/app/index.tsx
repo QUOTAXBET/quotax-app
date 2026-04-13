@@ -230,6 +230,6 @@ const st = StyleSheet.create({
   ctaWrap: { borderRadius: 16, overflow: 'hidden', width: '100%' },
   ctaBtn: { paddingVertical: 18, alignItems: 'center', borderRadius: 16, flexDirection: 'row', justifyContent: 'center', gap: 8 },
   ctaText: { color: C.bg, fontSize: 17, fontWeight: '900' },
-  guestBtn: { paddingVertical: 6 },
-  guestText: { color: C.muted, fontSize: 13 },
+  guestBtn: { paddingVertical: 8 },
+  guestText: { color: C.green, fontSize: 15, fontWeight: '600' },
 });

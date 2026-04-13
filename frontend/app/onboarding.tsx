@@ -95,7 +95,7 @@ export default function OnboardingScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const finalAnswers = { ...answers, [current.key]: selected };
     try { await AsyncStorage.setItem('onboarding_done', 'true'); await AsyncStorage.setItem('preferences', JSON.stringify(finalAnswers)); } catch (e) {}
-    router.replace('/(tabs)');
+    router.replace('/login');
   };
 
   const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });

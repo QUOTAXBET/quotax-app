@@ -246,12 +246,28 @@ export default function SubscribeScreen() {
               <>
                 <View style={styles.confirmPlanRow}>
                   <Text style={styles.confirmPlanName}>{selectedPlan.name}</Text>
-                  <Text style={styles.confirmPlanPrice}>{'\u20AC'}{selectedPlan.price.toFixed(2)}/{selectedPlan.period}</Text>
+                  {selectedPlan.trial ? (
+                    <Text style={styles.confirmPlanPrice}>{'\u20AC'}{selectedPlan.trial.price.toFixed(2)}/{selectedPlan.trial.days}gg</Text>
+                  ) : selectedPlan.first_month_price ? (
+                    <Text style={styles.confirmPlanPrice}>{'\u20AC'}{selectedPlan.first_month_price.toFixed(2)}/1° mese</Text>
+                  ) : (
+                    <Text style={styles.confirmPlanPrice}>{'\u20AC'}{selectedPlan.price.toFixed(2)}/{selectedPlan.period}</Text>
+                  )}
                 </View>
                 <View style={styles.confirmDivider} />
-                <Text style={styles.confirmNote}>
-                  Attivazione immediata. Accesso completo a tutti i pronostici premium e analisi AI.
-                </Text>
+                {selectedPlan.trial ? (
+                  <Text style={styles.confirmNote}>
+                    Prova {selectedPlan.trial.days} giorni a solo €{selectedPlan.trial.price.toFixed(2)}, poi €{selectedPlan.price.toFixed(2)}/{selectedPlan.period}. Puoi cancellare in qualsiasi momento.
+                  </Text>
+                ) : selectedPlan.first_month_price ? (
+                  <Text style={styles.confirmNote}>
+                    Primo mese a €{selectedPlan.first_month_price.toFixed(2)}, poi €{selectedPlan.price.toFixed(2)}/{selectedPlan.period}. Attivazione immediata.
+                  </Text>
+                ) : (
+                  <Text style={styles.confirmNote}>
+                    Attivazione immediata. Accesso completo a tutti i pronostici premium e analisi AI.
+                  </Text>
+                )}
                 <TouchableOpacity
                   style={styles.confirmBtn}
                   onPress={handleConfirmPurchase}

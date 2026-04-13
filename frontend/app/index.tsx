@@ -130,22 +130,22 @@ export default function LandingPage() {
           <Text style={st.subheadline}>L'algoritmo AI che analizza 40+ variabili per ogni evento</Text>
         </View>
 
-        {/* Stats — 3D depth with shadows + staggered entry */}
+        {/* Stats — Label sopra, box grandi, centrati */}
         {stats && (
           <View style={st.statsRow}>
             <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat1Scale }, { translateY: stat1Translate }], opacity: stat1Scale }]}>
-              <CountUp to={stats.roi_7d} prefix="+" suffix="%" style={st.statVal} />
               <Text style={st.statLbl}>ROI 7gg</Text>
+              <CountUp to={stats.roi_7d} prefix="+" suffix="%" style={st.statVal} />
               <View style={st.statGlow} />
             </Animated.View>
             <Animated.View style={[st.statBox, st.statBoxCenter, st.statBox3D, { transform: [{ scale: stat2Scale }, { translateY: stat2Translate }], opacity: stat2Scale }]}>
+              <Text style={[st.statLbl, { color: C.gold }]}>Win Rate</Text>
               <CountUp to={stats.win_rate} suffix="%" style={[st.statVal, { color: C.gold }]} />
-              <Text style={st.statLbl}>Win Rate</Text>
               <View style={st.statGlowGold} />
             </Animated.View>
             <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat3Scale }, { translateY: stat3Translate }], opacity: stat3Scale }]}>
-              <CountUp to={stats.streak} style={st.statVal} />
               <Text style={st.statLbl}>Serie Vinte</Text>
+              <CountUp to={stats.streak} style={st.statVal} />
               <View style={st.statGlow} />
             </Animated.View>
           </View>
@@ -191,7 +191,7 @@ export default function LandingPage() {
 
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  inner: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 12 },
+  inner: { flex: 1, justifyContent: 'space-evenly', paddingHorizontal: 24, paddingVertical: 8 },
   // Logo
   logoSection: { alignItems: 'center' },
   logoContainer: { borderWidth: 1.5, borderColor: 'rgba(0,255,136,0.35)', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 24, backgroundColor: 'rgba(0,255,136,0.03)' },
@@ -200,28 +200,28 @@ const st = StyleSheet.create({
   logoBeta: { fontSize: 10, color: C.green, fontWeight: '700', letterSpacing: 3, marginTop: 4 },
   // Headline
   headlineSection: { alignItems: 'center' },
-  headline: { fontSize: 28, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 36 },
-  subheadline: { fontSize: 14, color: C.sub, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  // Stats 3D
-  statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 8, paddingHorizontal: 16 },
-  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
+  headline: { fontSize: 26, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 34 },
+  subheadline: { fontSize: 13, color: C.sub, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+  // Stats
+  statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 10, paddingHorizontal: 0 },
+  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 20, paddingHorizontal: 10, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
   statBox3D: { shadowColor: C.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
   statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A', shadowColor: C.gold, shadowOpacity: 0.2 },
   statGlow: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.green, borderRadius: 20, opacity: 0.08 },
   statGlowGold: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.gold, borderRadius: 20, opacity: 0.1 },
-  statVal: { fontSize: 19, fontWeight: '900', color: C.green },
-  statLbl: { fontSize: 9, color: C.muted, marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
+  statLbl: { fontSize: 12, color: C.green, fontWeight: '700', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' },
+  statVal: { fontSize: 22, fontWeight: '900', color: C.green },
   // Live Banner
   liveBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,255,136,0.06)', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignSelf: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.1)' },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green },
   liveLabel: { color: C.green, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
   liveText: { color: C.sub, fontSize: 13, fontWeight: '500' },
-  // Carousel 3D
+  // Carousel
   carousel: { alignItems: 'center' },
-  carouselCard: { backgroundColor: C.card, borderRadius: 20, paddingVertical: 20, paddingHorizontal: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.15)', width: width - 72, elevation: 6 },
-  carouselTitle: { fontSize: 10, color: C.muted, fontWeight: '600', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
-  carouselAmount: { fontSize: 40, fontWeight: '900', color: C.green },
-  carouselDetail: { fontSize: 13, color: C.sub, marginTop: 4 },
+  carouselCard: { backgroundColor: C.card, borderRadius: 22, paddingVertical: 24, paddingHorizontal: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.15)', width: width - 48, elevation: 6 },
+  carouselTitle: { fontSize: 11, color: C.muted, fontWeight: '600', letterSpacing: 1.5, marginBottom: 8, textTransform: 'uppercase' },
+  carouselAmount: { fontSize: 44, fontWeight: '900', color: C.green },
+  carouselDetail: { fontSize: 14, color: C.sub, marginTop: 6 },
   dots: { flexDirection: 'row', gap: 6, marginTop: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.border },
   dotActive: { backgroundColor: C.green, width: 18 },

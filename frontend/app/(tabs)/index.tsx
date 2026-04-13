@@ -283,7 +283,7 @@ export default function PronosticiScreen() {
                       <Ionicons name="lock-closed" size={20} color={colors.gold} />
                       <Text style={s.lockedTitle}>Analisi AI Premium</Text>
                       <TouchableOpacity style={s.lockedCTABtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push(isAuthenticated ? '/subscribe' : '/login'); }} activeOpacity={0.8}>
-                        <Text style={s.lockedCTAText}>Registrati gratis per sbloccare</Text>
+                        <Text style={s.lockedCTAText}>{isAuthenticated ? 'Abbonati per sbloccare' : 'Registrati gratis per sbloccare'}</Text>
                         <Ionicons name="arrow-forward" size={12} color={colors.gold} />
                       </TouchableOpacity>
                     </View>

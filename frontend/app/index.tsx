@@ -28,7 +28,7 @@ function CountUp({ to, prefix, suffix, style }: { to: number; prefix?: string; s
     const id = anim.addListener(({ value }) => setVal(Number.isInteger(to) ? Math.round(value).toString() : value.toFixed(1)));
     return () => anim.removeListener(id);
   }, [to]);
-  return <Text style={style}>{prefix}{val}{suffix}</Text>;
+  return <Text style={style} numberOfLines={1} adjustsFontSizeToFit>{prefix}{val}{suffix}</Text>;
 }
 
 export default function LandingPage() {
@@ -203,14 +203,14 @@ const st = StyleSheet.create({
   headline: { fontSize: 28, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 36 },
   subheadline: { fontSize: 14, color: C.sub, textAlign: 'center', marginTop: 8, lineHeight: 20 },
   // Stats 3D
-  statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 20 },
-  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 16, paddingHorizontal: 8, borderRadius: 18, alignItems: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
+  statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 8, paddingHorizontal: 16 },
+  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
   statBox3D: { shadowColor: C.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
   statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A', shadowColor: C.gold, shadowOpacity: 0.2 },
   statGlow: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.green, borderRadius: 20, opacity: 0.08 },
   statGlowGold: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.gold, borderRadius: 20, opacity: 0.1 },
-  statVal: { fontSize: 24, fontWeight: '900', color: C.green },
-  statLbl: { fontSize: 10, color: C.muted, marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
+  statVal: { fontSize: 19, fontWeight: '900', color: C.green },
+  statLbl: { fontSize: 9, color: C.muted, marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
   // Live Banner
   liveBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,255,136,0.06)', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignSelf: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.1)' },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green },

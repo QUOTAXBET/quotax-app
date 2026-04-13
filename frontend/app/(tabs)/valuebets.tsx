@@ -125,13 +125,12 @@ export default function ValueBetsScreen() {
 
         {/* Preview cards blurred */}
         <ScrollView contentContainerStyle={st.scrollContent}>
-          {[1, 2, 3].map(i => (
+          {[1, 2].map(i => (
             <View key={i} style={st.previewCard}>
               <View style={st.blurredLines}>
                 <View style={[st.blurLine, { width: '60%' }]} />
                 <View style={[st.blurLine, { width: '80%' }]} />
                 <View style={[st.blurLine, { width: '45%' }]} />
-                <View style={[st.blurLine, { width: '70%' }]} />
               </View>
             </View>
           ))}
@@ -296,9 +295,9 @@ const st = StyleSheet.create({
   infoBoxText: { color: colors.textMuted, fontSize: 11, flex: 1, lineHeight: 16 },
   scrollContent: { padding: 16, paddingTop: 4 },
   // Locked state
-  previewCard: { backgroundColor: colors.card, borderRadius: 20, padding: 24, marginBottom: 12, opacity: 0.3 },
-  blurredLines: { gap: 12 },
-  blurLine: { height: 14, backgroundColor: colors.textMuted, borderRadius: 6, opacity: 0.3 },
+  previewCard: { backgroundColor: colors.card, borderRadius: 18, padding: 18, marginBottom: 10, opacity: 0.25 },
+  blurredLines: { gap: 10 },
+  blurLine: { height: 12, backgroundColor: colors.textMuted, borderRadius: 6, opacity: 0.3 },
   lockedBanner: { alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,215,0,0.06)', padding: 28, borderRadius: 24, borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.2)', marginTop: 8 },
   lockedTitle: { color: colors.gold, fontSize: 20, fontWeight: '900' },
   lockedSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20 },

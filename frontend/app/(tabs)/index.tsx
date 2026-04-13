@@ -276,16 +276,15 @@ export default function PronosticiScreen() {
                   </View>
                 )}
 
-                {/* Fully Locked */}
+                {/* Fully Locked - Premium Analysis */}
                 {shouldLock && (
-                  <TouchableOpacity style={s.locked} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
-                    <View style={s.blurLines}><View style={[s.blurLine, { width: '75%' }]} /><View style={[s.blurLine, { width: '50%' }]} /><View style={[s.blurLine, { width: '85%' }]} /></View>
+                  <TouchableOpacity style={s.locked} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(isAuthenticated ? '/subscribe' : '/login'); }} activeOpacity={0.85}>
                     <View style={s.lockedOverlay}>
-                      <Ionicons name="lock-closed" size={18} color={colors.gold} />
-                      <Text style={s.lockedTitle}>{'🔒 Analisi AI Premium'}</Text>
-                      <Text style={s.lockedHint}>{"L'AI ha individuato un possibile vantaggio su questa giocata"}</Text>
-                      <TouchableOpacity style={s.lockedCTABtn} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
-                        <Text style={s.lockedCTAText}>{isAuthenticated ? 'Sblocca analisi AI' : 'Registrati gratis per sbloccare'}</Text>
+                      <Ionicons name="lock-closed" size={20} color={colors.gold} />
+                      <Text style={s.lockedTitle}>Analisi AI Premium</Text>
+                      <TouchableOpacity style={s.lockedCTABtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push(isAuthenticated ? '/subscribe' : '/login'); }} activeOpacity={0.8}>
+                        <Text style={s.lockedCTAText}>Registrati gratis per sbloccare</Text>
+                        <Ionicons name="arrow-forward" size={12} color={colors.gold} />
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -310,10 +309,10 @@ export default function PronosticiScreen() {
                 </View>
                 {/* FOMO CTA only on LOCKED cards */}
                 {shouldLock && (
-                  <TouchableOpacity style={s.fomoCTA} onPress={() => router.push(isAuthenticated ? '/subscribe' : '/login')} activeOpacity={0.8}>
-                    <Ionicons name="flash" size={12} color={colors.gold} />
-                    <Text style={s.fomoCTAText}>Non perdere questa quota</Text>
-                    <Ionicons name="chevron-forward" size={12} color={colors.gold} />
+                  <TouchableOpacity style={s.fomoCTA} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/subscribe'); }} activeOpacity={0.8}>
+                    <Ionicons name="flash" size={13} color={colors.primary} />
+                    <Text style={s.fomoCTAText}>Sblocca la potenza dell'AI</Text>
+                    <Ionicons name="chevron-forward" size={13} color={colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -482,22 +481,19 @@ const s = StyleSheet.create({
   teaserOverlay: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   teaserCta: { color: colors.gold, fontSize: 12, fontWeight: '700' },
   // Locked
-  locked: { borderRadius: 14, overflow: 'hidden', position: 'relative' },
-  blurLines: { backgroundColor: colors.background, borderRadius: 14, padding: 16, gap: 8, opacity: 0.15 },
-  blurLine: { height: 12, backgroundColor: colors.textMuted, borderRadius: 4 },
-  lockedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(11,15,20,0.85)', borderRadius: 14, gap: 4 },
-  lockedTitle: { color: colors.gold, fontSize: 14, fontWeight: '800' },
-  lockedHint: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 2 },
-  lockedCTABtn: { marginTop: 10, backgroundColor: 'rgba(255,215,0,0.12)', paddingHorizontal: 18, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.25)' },
-  lockedCTAText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+  locked: { borderRadius: 16, overflow: 'hidden' },
+  lockedOverlay: { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(11,15,20,0.92)', borderRadius: 16, paddingVertical: 18, paddingHorizontal: 16, gap: 8, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  lockedTitle: { color: colors.gold, fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
+  lockedCTABtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, backgroundColor: 'rgba(255,215,0,0.12)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)' },
+  lockedCTAText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   // FOMO
   fomoBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
   fomoLeft: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   fomoText: { color: colors.textMuted, fontSize: 10 },
   countdownWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,255,136,0.08)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   countdownText: { color: colors.primary, fontSize: 10, fontWeight: '800' },
-  fomoCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,215,0,0.06)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
-  fomoCTAText: { color: colors.gold, fontSize: 11, fontWeight: '700' },
+  fomoCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(0,255,136,0.08)', borderWidth: 1, borderColor: 'rgba(0,255,136,0.2)' },
+  fomoCTAText: { color: colors.primary, fontSize: 12, fontWeight: '800' },
   // Schedina bar
   schedinaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 4 : 4 },
   schedinaBarInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },

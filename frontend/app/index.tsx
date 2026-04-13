@@ -203,8 +203,8 @@ const st = StyleSheet.create({
   headline: { fontSize: 28, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 36 },
   subheadline: { fontSize: 14, color: C.sub, textAlign: 'center', marginTop: 8, lineHeight: 20 },
   // Stats 3D
-  statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
-  statBox: { backgroundColor: C.card, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 18, alignItems: 'center', minWidth: 100, borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
+  statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 20 },
+  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 16, paddingHorizontal: 8, borderRadius: 18, alignItems: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
   statBox3D: { shadowColor: C.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
   statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A', shadowColor: C.gold, shadowOpacity: 0.2 },
   statGlow: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.green, borderRadius: 20, opacity: 0.08 },

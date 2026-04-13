@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { badgesAPI, leaderboardAPI } from '../../src/utils/api';
+import { badgesAPI, leaderboardAPI, devAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 
 const BADGE_DEFINITIONS_FALLBACK = [
@@ -23,7 +23,7 @@ const BADGE_DEFINITIONS_FALLBACK = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, isPremium, logout } = useAuth();
+  const { user, isAuthenticated, isPremium, logout, refreshUser } = useAuth();
   const [badges, setBadges] = useState<any[]>([]);
   const [definitions, setDefinitions] = useState<any[]>(BADGE_DEFINITIONS_FALLBACK);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -31,6 +31,8 @@ export default function ProfileScreen() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'badges' | 'leaderboard'>('badges');
+  const [devOpen, setDevOpen] = useState(false);
+  const [switchingTier, setSwitchingTier] = useState<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -60,8 +62,23 @@ export default function ProfileScreen() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  const getTierColor = (tier: string) => tier === 'elite' ? colors.gold : tier === 'premium' ? colors.primary : tier === 'pro' ? '#9B59B6' : colors.textMuted;
-  const getTierLabel = (tier: string) => tier === 'elite' ? 'ELITE' : tier === 'premium' ? 'PREMIUM' : tier === 'pro' ? 'PRO' : 'FREE';
+  const getTierColor = (tier: string) => tier === 'elite' ? colors.gold : tier === 'premium' ? colors.gold : tier === 'pro' ? '#9B59B6' : colors.primary;
+  const getTierLabel = (tier: string) => tier === 'elite' ? 'ELITE' : tier === 'premium' ? 'ELITE' : tier === 'pro' ? 'PRO' : 'FREE';
+
+  const handleSwitchTier = async (tier: string) => {
+    if (!user?.user_id) return;
+    setSwitchingTier(tier);
+    try {
+      await devAPI.switchTier(user.user_id, tier);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshUser();
+      Alert.alert('Piano cambiato!', `Ora sei ${tier === 'premium' ? 'Elite' : tier === 'pro' ? 'Pro' : 'Free'}. Vai su Pronostici/Schedine/Top Picks per testare.`);
+    } catch (e: any) {
+      Alert.alert('Errore', e?.message || 'Errore nel cambio piano');
+    } finally {
+      setSwitchingTier(null);
+    }
+  };
 
   // Guest view
   if (!isAuthenticated) {
@@ -132,8 +149,10 @@ export default function ProfileScreen() {
           <View style={st.userInfo}>
             <Text style={st.userName}>{user?.name}</Text>
             <Text style={st.userEmail}>{user?.email}</Text>
-            <View style={[st.userTierBadge, { backgroundColor: isPremium ? 'rgba(255,215,0,0.15)' : 'rgba(0,255,136,0.15)' }]}>
-              <Text style={[st.userTierText, { color: isPremium ? colors.gold : colors.primary }]}>{isPremium ? 'PREMIUM' : 'FREE'}</Text>
+            <View style={[st.userTierBadge, { backgroundColor: user?.subscription_tier === 'premium' ? 'rgba(255,215,0,0.15)' : user?.subscription_tier === 'pro' ? 'rgba(155,89,182,0.15)' : 'rgba(0,255,136,0.15)' }]}>
+              <Text style={[st.userTierText, { color: user?.subscription_tier === 'premium' ? colors.gold : user?.subscription_tier === 'pro' ? '#9B59B6' : colors.primary }]}>
+                {user?.subscription_tier === 'premium' ? 'ELITE' : user?.subscription_tier === 'pro' ? 'PRO' : 'FREE'}
+              </Text>
             </View>
           </View>
           <Text style={st.pointsText}>{totalPoints} pts</Text>
@@ -166,6 +185,54 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
+
+        {/* Dev Panel - Tier Switcher */}
+        <TouchableOpacity 
+          style={st.devToggle} 
+          onPress={() => { Haptics.selectionAsync(); setDevOpen(!devOpen); }}
+          activeOpacity={0.7}
+        >
+          <View style={st.devToggleLeft}>
+            <Ionicons name="code-slash" size={16} color="#FF6B35" />
+            <Text style={st.devToggleText}>Dev Mode — Cambia Piano</Text>
+          </View>
+          <Ionicons name={devOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {devOpen && (
+          <View style={st.devPanel}>
+            <Text style={st.devLabel}>Piano attuale: <Text style={{ color: getTierColor(user?.subscription_tier || 'free'), fontWeight: '800' }}>{getTierLabel(user?.subscription_tier || 'free')}</Text></Text>
+            <Text style={st.devHint}>Seleziona un piano per testare. Le altre tab si aggiorneranno automaticamente.</Text>
+            <View style={st.devTierRow}>
+              {[
+                { tier: 'free', label: 'Free', icon: 'person', color: colors.primary },
+                { tier: 'pro', label: 'Pro', icon: 'star', color: '#9B59B6' },
+                { tier: 'premium', label: 'Elite', icon: 'diamond', color: colors.gold },
+              ].map(t => {
+                const isActive = user?.subscription_tier === t.tier;
+                return (
+                  <TouchableOpacity
+                    key={t.tier}
+                    style={[st.devTierBtn, isActive && { borderColor: t.color, backgroundColor: t.color + '15' }]}
+                    onPress={() => !isActive && handleSwitchTier(t.tier)}
+                    disabled={switchingTier !== null}
+                    activeOpacity={0.7}
+                  >
+                    {switchingTier === t.tier ? (
+                      <ActivityIndicator size="small" color={t.color} />
+                    ) : (
+                      <>
+                        <Ionicons name={t.icon as any} size={20} color={isActive ? t.color : colors.textMuted} />
+                        <Text style={[st.devTierLabel, isActive && { color: t.color }]}>{t.label}</Text>
+                        {isActive && <Ionicons name="checkmark-circle" size={14} color={t.color} />}
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Section Toggle */}
         <View style={st.toggleRow}>
@@ -295,6 +362,16 @@ const st = StyleSheet.create({
   toggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   toggleText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   toggleTextActive: { color: colors.background, fontWeight: '700' },
+  // Dev Panel
+  devToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 8, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: 'rgba(255,107,53,0.06)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,107,53,0.15)' },
+  devToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  devToggleText: { color: '#FF6B35', fontSize: 13, fontWeight: '700' },
+  devPanel: { marginHorizontal: 20, marginBottom: 12, padding: 16, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,107,53,0.2)' },
+  devLabel: { color: colors.textPrimary, fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  devHint: { color: colors.textMuted, fontSize: 11, marginBottom: 14 },
+  devTierRow: { flexDirection: 'row', gap: 8 },
+  devTierBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.background, borderWidth: 1.5, borderColor: colors.border },
+  devTierLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   // Badges
   prizeCard: { marginHorizontal: 20, marginBottom: 14, backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
   prizeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },

@@ -186,4 +186,12 @@ export const notificationsAPI = {
   getTypes: async () => (await api.get('/notifications/types')).data,
 };
 
+// Dev Tools (for testing subscription tiers)
+export const devAPI = {
+  switchTier: async (userId: string, tier: string) =>
+    (await api.post('/dev/switch-tier', { user_id: userId, tier })).data,
+  getUser: async (userId: string) =>
+    (await api.get(`/dev/user/${userId}`)).data,
+};
+
 export default api;

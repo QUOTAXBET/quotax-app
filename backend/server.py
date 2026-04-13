@@ -28,6 +28,7 @@ from routes.notifications import router as notifications_router
 from routes.elite import router as elite_router
 from routes.opportunities import router as opportunities_router
 from routes.emails import router as emails_router
+from routes.dev import router as dev_router
 
 # Include all route modules
 api_router.include_router(auth_router)
@@ -40,6 +41,7 @@ api_router.include_router(notifications_router)
 api_router.include_router(elite_router)
 api_router.include_router(opportunities_router)
 api_router.include_router(emails_router)
+api_router.include_router(dev_router)
 
 @api_router.get("/")
 async def root():

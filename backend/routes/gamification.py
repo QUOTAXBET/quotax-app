@@ -77,6 +77,10 @@ async def get_user_badges(user_id: str):
 
     await db.users.update_one({"user_id": user_id}, {"$set": {"badges": earned}})
 
+    # Clear "new" flag after reading so popup doesn't re-trigger
+    cleared = [{"badge_id": b["badge_id"], "earned_at": b.get("earned_at", ""), "new": False} for b in earned]
+    await db.users.update_one({"user_id": user_id}, {"$set": {"badges": cleared}})
+
     # Calculate points from definitions
     points = 0
     for b in earned:

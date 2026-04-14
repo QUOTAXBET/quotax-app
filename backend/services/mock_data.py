@@ -86,47 +86,48 @@ SUBSCRIPTION_PLANS = [
 # ==================== GENERATORS ====================
 
 def generate_schedine(count: int = 10, include_premium: bool = True) -> List[Dict]:
-    """Generate realistic betting slips"""
+    """Generate realistic betting slips — deterministic IDs"""
+    rng = random.Random(42)  # Fixed seed for consistent data
     schedine = []
     statuses = ["won", "won", "won", "won", "lost", "pending", "pending"]
 
     for i in range(count):
         is_premium = i > 3 and include_premium
-        num_matches = random.randint(2, 5)
+        num_matches = rng.randint(2, 5)
         matches = []
         total_odds = 1.0
 
         for _ in range(num_matches):
-            sport = random.choice(["soccer", "nba", "ufc"])
+            sport = rng.choice(["soccer", "nba", "ufc"])
             if sport == "soccer":
-                league = random.choice(list(SOCCER_LEAGUES.keys()))
+                league = rng.choice(list(SOCCER_LEAGUES.keys()))
                 teams = SOCCER_LEAGUES[league]
-                home, away = random.sample(teams, 2)
-                bet_type = random.choice(["1", "X", "2", "1X", "X2", "GOL", "OVER 2.5"])
+                home, away = rng.sample(teams, 2)
+                bet_type = rng.choice(["1", "X", "2", "1X", "X2", "GOL", "OVER 2.5"])
             elif sport == "nba":
                 league = "NBA"
-                home, away = random.sample(NBA_TEAMS, 2)
-                bet_type = random.choice(["1", "2", "OVER", "UNDER"])
+                home, away = rng.sample(NBA_TEAMS, 2)
+                bet_type = rng.choice(["1", "2", "OVER", "UNDER"])
             else:
-                division = random.choice(list(UFC_FIGHTERS.keys()))
+                division = rng.choice(list(UFC_FIGHTERS.keys()))
                 league = f"UFC {division}"
                 fighters = UFC_FIGHTERS[division]
-                home, away = random.sample(fighters, 2)
-                bet_type = random.choice(["1", "2"])
+                home, away = rng.sample(fighters, 2)
+                bet_type = rng.choice(["1", "2"])
 
-            odds = round(random.uniform(1.25, 2.80), 2)
+            odds = round(rng.uniform(1.25, 2.80), 2)
             total_odds *= odds
             matches.append({
                 "sport": sport, "league": league, "home": home, "away": away,
                 "bet_type": bet_type, "odds": odds,
-                "match_time": (datetime.now(timezone.utc) + timedelta(hours=random.randint(-48, 72))).isoformat()
+                "match_time": (datetime.now(timezone.utc) + timedelta(hours=rng.randint(-48, 72))).isoformat()
             })
 
-        status = random.choice(statuses)
-        stake = random.choice([10, 20, 25, 50, 100])
+        status = rng.choice(statuses)
+        stake = rng.choice([10, 20, 25, 50, 100])
         potential_win = round(stake * total_odds, 2)
         schedine.append({
-            "schedina_id": f"sch_{uuid.uuid4().hex[:8]}",
+            "schedina_id": f"sch_{i:03d}_{num_matches}m",
             "matches": matches,
             "total_odds": round(total_odds, 2),
             "stake": stake,
@@ -134,10 +135,10 @@ def generate_schedine(count: int = 10, include_premium: bool = True) -> List[Dic
             "actual_win": potential_win if status == "won" else 0,
             "status": status,
             "is_premium": is_premium,
-            "confidence": random.randint(65, 95),
-            "ai_analysis": f"Value bet identificato. Probabilità stimata {random.randint(55, 75)}%. Quote sottovalutate del {random.randint(5, 20)}%.",
-            "created_at": (datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 168))).isoformat(),
-            "viewers": random.randint(8, 45),
+            "confidence": rng.randint(65, 95),
+            "ai_analysis": f"Value bet identificato. Probabilità stimata {rng.randint(55, 75)}%. Quote sottovalutate del {rng.randint(5, 20)}%.",
+            "created_at": (datetime.now(timezone.utc) - timedelta(hours=rng.randint(1, 168))).isoformat(),
+            "viewers": rng.randint(8, 45),
         })
     return schedine
 

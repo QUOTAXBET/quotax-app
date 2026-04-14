@@ -99,8 +99,8 @@ export default function SchedineAIScreen() {
     // Main tab filter
     if (activeTab === 'single') { if (sch.matches.length !== 1) return false; }
     if (activeTab === 'multi') { if (sch.matches.length <= 1) return false; }
-    // Sub tab filter: Disponibili = pending, Archivio = won or lost
-    if (activeSubTab === 'disponibili') return sch.status === 'pending';
+    // Sub tab filter: Disponibili = followed/played schedine, Archivio = won or lost
+    if (activeSubTab === 'disponibili') return followedIds.has(sch.schedina_id);
     if (activeSubTab === 'archivio') return sch.status === 'won' || sch.status === 'lost';
     return true;
   });
@@ -171,7 +171,7 @@ export default function SchedineAIScreen() {
             <Text style={[st.subTabText, activeSubTab === sub.key && st.subTabTextActive]}>{sub.label}</Text>
             {sub.key === 'disponibili' && (
               <View style={st.subTabCount}>
-                <Text style={st.subTabCountText}>{schedine.filter(s => s.status === 'pending').length}</Text>
+                <Text style={st.subTabCountText}>{followedIds.size}</Text>
               </View>
             )}
           </TouchableOpacity>

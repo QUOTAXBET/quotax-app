@@ -133,20 +133,17 @@ export default function LandingPage() {
         {/* Stats — Label sopra, box grandi, centrati */}
         {stats && (
           <View style={st.statsRow}>
-            <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat1Scale }, { translateY: stat1Translate }], opacity: stat1Scale }]}>
+            <Animated.View style={[st.statBox, { transform: [{ scale: stat1Scale }, { translateY: stat1Translate }], opacity: stat1Scale }]}>
               <Text style={st.statLbl}>ROI 7gg</Text>
               <CountUp to={stats.roi_7d} prefix="+" suffix="%" style={st.statVal} />
-              <View style={st.statGlow} />
             </Animated.View>
-            <Animated.View style={[st.statBox, st.statBoxCenter, st.statBox3D, { transform: [{ scale: stat2Scale }, { translateY: stat2Translate }], opacity: stat2Scale }]}>
+            <Animated.View style={[st.statBox, st.statBoxCenter, { transform: [{ scale: stat2Scale }, { translateY: stat2Translate }], opacity: stat2Scale }]}>
               <Text style={[st.statLbl, { color: C.gold }]}>Win Rate</Text>
               <CountUp to={stats.win_rate} suffix="%" style={[st.statVal, { color: C.gold }]} />
-              <View style={st.statGlowGold} />
             </Animated.View>
-            <Animated.View style={[st.statBox, st.statBox3D, { transform: [{ scale: stat3Scale }, { translateY: stat3Translate }], opacity: stat3Scale }]}>
+            <Animated.View style={[st.statBox, { transform: [{ scale: stat3Scale }, { translateY: stat3Translate }], opacity: stat3Scale }]}>
               <Text style={st.statLbl}>Serie Vinte</Text>
               <CountUp to={stats.streak} style={st.statVal} />
-              <View style={st.statGlow} />
             </Animated.View>
           </View>
         )}
@@ -204,13 +201,10 @@ const st = StyleSheet.create({
   subheadline: { fontSize: 13, color: C.sub, textAlign: 'center', marginTop: 6, lineHeight: 19 },
   // Stats
   statsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 10, paddingHorizontal: 0 },
-  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 20, paddingHorizontal: 10, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border, elevation: 8, overflow: 'hidden', position: 'relative' },
-  statBox3D: { shadowColor: C.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
-  statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A', shadowColor: C.gold, shadowOpacity: 0.2 },
-  statGlow: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.green, borderRadius: 20, opacity: 0.08 },
-  statGlowGold: { position: 'absolute', bottom: -10, left: '20%', width: '60%', height: 20, backgroundColor: C.gold, borderRadius: 20, opacity: 0.1 },
+  statBox: { flex: 1, backgroundColor: C.card, paddingVertical: 20, paddingHorizontal: 10, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  statBoxCenter: { borderColor: 'rgba(255,215,0,0.3)', backgroundColor: '#1E2A3A' },
   statLbl: { fontSize: 12, color: C.green, fontWeight: '700', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' },
-  statVal: { fontSize: 22, fontWeight: '900', color: C.green },
+  statVal: { fontSize: 18, fontWeight: '900', color: C.green },
   // Live Banner
   liveBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,255,136,0.06)', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignSelf: 'center', borderWidth: 1, borderColor: 'rgba(0,255,136,0.1)' },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green },

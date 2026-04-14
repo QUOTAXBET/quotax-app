@@ -13,7 +13,7 @@ import BadgeUnlockPopup from '../../src/components/BadgeUnlockPopup';
 import { SkeletonSchedinaCard } from '../../src/components/Skeleton';
 
 type FilterTab = 'all' | 'single' | 'multi';
-type SubTab = 'disponibili' | 'archivio';
+type SubTab = 'disponibili' | 'giocate' | 'archivio';
 
 export default function SchedineAIScreen() {
   const router = useRouter();
@@ -99,8 +99,9 @@ export default function SchedineAIScreen() {
     // Main tab filter
     if (activeTab === 'single') { if (sch.matches.length !== 1) return false; }
     if (activeTab === 'multi') { if (sch.matches.length <= 1) return false; }
-    // Sub tab filter: Disponibili = followed/played schedine, Archivio = won or lost
-    if (activeSubTab === 'disponibili') return followedIds.has(sch.schedina_id);
+    // Sub tab filter: Disponibili = all pending, Giocate = followed only, Archivio = won or lost
+    if (activeSubTab === 'disponibili') return sch.status === 'pending';
+    if (activeSubTab === 'giocate') return followedIds.has(sch.schedina_id);
     if (activeSubTab === 'archivio') return sch.status === 'won' || sch.status === 'lost';
     return true;
   });
@@ -156,10 +157,11 @@ export default function SchedineAIScreen() {
         ))}
       </View>
 
-      {/* Subtabs: Disponibili / Archivio */}
+      {/* Subtabs: Disponibili / Giocate / Archivio */}
       <View style={st.subTabRow}>
         {([
-          { key: 'disponibili', label: 'Schedine giocate', icon: 'time' },
+          { key: 'disponibili', label: 'Disponibili', icon: 'layers' },
+          { key: 'giocate', label: 'Giocate', icon: 'time' },
           { key: 'archivio', label: 'Archivio', icon: 'archive' },
         ] as { key: SubTab; label: string; icon: string }[]).map(sub => (
           <TouchableOpacity
@@ -169,9 +171,9 @@ export default function SchedineAIScreen() {
           >
             <Ionicons name={sub.icon as any} size={13} color={activeSubTab === sub.key ? colors.primary : colors.textMuted} />
             <Text style={[st.subTabText, activeSubTab === sub.key && st.subTabTextActive]}>{sub.label}</Text>
-            {sub.key === 'disponibili' && (
+            {sub.key === 'giocate' && (
               <View style={st.subTabCount}>
-                <Text style={st.subTabCountText}>{followedIds.size}</Text>
+                <Text style={st.subTabCountText}>{schedine.filter(s => followedIds.has(s.schedina_id)).length}</Text>
               </View>
             )}
           </TouchableOpacity>

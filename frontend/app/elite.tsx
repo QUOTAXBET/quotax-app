@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Animated, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Animated, Keyboard, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,13 @@ const SUGGESTIONS = [
   "Consigli scommesse Serie A oggi",
 ];
 
+const EVENT_OPTIONS = [3, 5, 7, 10];
+const RISK_LEVELS = [
+  { key: 'low', label: 'Basso', emoji: '🟢', desc: 'Quote basse, alta probabilità' },
+  { key: 'medium', label: 'Medio', emoji: '🟡', desc: 'Bilanciato rischio/rendimento' },
+  { key: 'high', label: 'Alto', emoji: '🔴', desc: 'Quote alte, alta vincita potenziale' },
+];
+
 export default function EliteScreen() {
   const router = useRouter();
   const { user, isAuthenticated, isPremium } = useAuth();
@@ -25,6 +32,17 @@ export default function EliteScreen() {
   const [response, setResponse] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [badgePopup, setBadgePopup] = useState<any>(null);
+
+  // Schedina Personalizzata AI
+  const [showSchedina, setShowSchedina] = useState(false);
+  const [schedinaStep, setSchedinaStep] = useState(0);
+  const [schedinaEvents, setSchedinaEvents] = useState(5);
+  const [schedinaStake, setSchedinaStake] = useState('10');
+  const [schedinaTarget, setSchedinaTarget] = useState('50');
+  const [schedinaRisk, setSchedinaRisk] = useState('medium');
+  const [schedinaGenerating, setSchedinaGenerating] = useState(false);
+  const [schedinaResult, setSchedinaResult] = useState<any>(null);
+  const ctaPulse = useRef(new Animated.Value(1)).current;
   const [access, setAccess] = useState<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -42,6 +60,54 @@ export default function EliteScreen() {
       }).catch(() => {});
     }
   }, [user?.user_id]);
+
+  // CTA pulse animation
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(ctaPulse, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
+      Animated.timing(ctaPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+    ])).start();
+  }, []);
+
+  const handleOpenSchedina = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSchedinaStep(0);
+    setSchedinaResult(null);
+    setSchedinaEvents(5);
+    setSchedinaStake('10');
+    setSchedinaTarget('50');
+    setSchedinaRisk('medium');
+    setShowSchedina(true);
+  };
+
+  const handleGenerateSchedina = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setSchedinaGenerating(true);
+    setSchedinaStep(4);
+    const riskLabel = RISK_LEVELS.find(r => r.key === schedinaRisk)?.label || 'Medio';
+    const prompt = `Crea una schedina personalizzata con queste specifiche:
+- Numero eventi: ${schedinaEvents}
+- Puntata: €${schedinaStake}
+- Vincita desiderata: €${schedinaTarget}
+- Livello di rischio: ${riskLabel}
+
+Genera una schedina completa con:
+1. Lista eventi (partita, esito consigliato, quota stimata)
+2. Quota totale combinata
+3. Vincita stimata
+4. Breve spiegazione strategica
+
+Formatta in modo chiaro e leggibile. Usa emoji per rendere visivamente accattivante.`;
+
+    try {
+      const res = await eliteAPI.ask(user?.user_id || '', prompt);
+      setSchedinaResult(res);
+    } catch (e: any) {
+      setSchedinaResult({ response: 'Errore nella generazione. Riprova.', model: 'error' });
+    } finally {
+      setSchedinaGenerating(false);
+    }
+  };
 
   const handleAsk = async () => {
     if (!query.trim()) return;
@@ -185,6 +251,20 @@ export default function EliteScreen() {
             <Text style={s.charCount}>{query.length}/200</Text>
           </View>
 
+          {/* Schedina Personalizzata CTA */}
+          {!response && !loading && (
+            <Animated.View style={{ transform: [{ scale: ctaPulse }], marginHorizontal: 16, marginBottom: 8 }}>
+              <TouchableOpacity style={s.schedinaCTA} onPress={handleOpenSchedina} activeOpacity={0.85}>
+                <Ionicons name="flash" size={20} color={colors.background} />
+                <View style={s.schedinaCTATextWrap}>
+                  <Text style={s.schedinaCTATitle}>Schedina Personalizzata AI</Text>
+                  <Text style={s.schedinaCTASub}>L'AI crea la schedina perfetta per te</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.background} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
           {/* Suggestions */}
           {!response && !loading && (
             <View style={s.suggestions}>
@@ -256,6 +336,159 @@ export default function EliteScreen() {
       </KeyboardAvoidingView>
 
       <View style={s.disclaimer}><Text style={s.disclaimerText}>Simulazione a scopo dimostrativo. Non incoraggiamo il gioco d'azzardo.</Text></View>
+
+      {/* Schedina Personalizzata Modal */}
+      <Modal visible={showSchedina} transparent animationType="slide" onRequestClose={() => setShowSchedina(false)}>
+        <View style={s.scModalOverlay}>
+          <View style={s.scModal}>
+            {/* Header */}
+            <View style={s.scHeader}>
+              <View style={s.scHeaderLeft}>
+                <Ionicons name="flash" size={20} color={colors.gold} />
+                <Text style={s.scHeaderTitle}>Schedina Personalizzata AI</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowSchedina(false)} style={s.scCloseBtn}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+              {/* Step indicators */}
+              {schedinaStep < 4 && (
+                <View style={s.scSteps}>
+                  {[0, 1, 2, 3].map(i => (
+                    <View key={i} style={[s.scStepDot, i <= schedinaStep && s.scStepDotActive]} />
+                  ))}
+                </View>
+              )}
+
+              {/* Step 0: Number of events */}
+              {schedinaStep === 0 && (
+                <View style={s.scStepContent}>
+                  <Text style={s.scStepTitle}>Quanti eventi vuoi inserire?</Text>
+                  <Text style={s.scStepSub}>Scegli il numero di partite nella tua schedina</Text>
+                  <View style={s.scOptionsRow}>
+                    {EVENT_OPTIONS.map(n => (
+                      <TouchableOpacity key={n} style={[s.scOption, schedinaEvents === n && s.scOptionActive]} onPress={() => { Haptics.selectionAsync(); setSchedinaEvents(n); }}>
+                        <Text style={[s.scOptionText, schedinaEvents === n && s.scOptionTextActive]}>{n}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TouchableOpacity style={s.scNextBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSchedinaStep(1); }}>
+                    <Text style={s.scNextText}>Avanti</Text>
+                    <Ionicons name="arrow-forward" size={16} color={colors.background} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Step 1: Stake */}
+              {schedinaStep === 1 && (
+                <View style={s.scStepContent}>
+                  <Text style={s.scStepTitle}>Quanto vuoi puntare?</Text>
+                  <Text style={s.scStepSub}>Inserisci la puntata (simulazione)</Text>
+                  <View style={s.scInputWrap}>
+                    <Text style={s.scInputPrefix}>€</Text>
+                    <TextInput style={s.scInput} value={schedinaStake} onChangeText={setSchedinaStake} keyboardType="numeric" placeholder="10" placeholderTextColor={colors.textMuted} />
+                  </View>
+                  <View style={s.scBtnRow}>
+                    <TouchableOpacity style={s.scBackBtn} onPress={() => setSchedinaStep(0)}>
+                      <Ionicons name="arrow-back" size={16} color={colors.textMuted} />
+                      <Text style={s.scBackText}>Indietro</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.scNextBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSchedinaStep(2); }}>
+                      <Text style={s.scNextText}>Avanti</Text>
+                      <Ionicons name="arrow-forward" size={16} color={colors.background} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Step 2: Target */}
+              {schedinaStep === 2 && (
+                <View style={s.scStepContent}>
+                  <Text style={s.scStepTitle}>Quanto vuoi ottenere?</Text>
+                  <Text style={s.scStepSub}>Vincita desiderata (simulazione)</Text>
+                  <View style={s.scInputWrap}>
+                    <Text style={s.scInputPrefix}>€</Text>
+                    <TextInput style={s.scInput} value={schedinaTarget} onChangeText={setSchedinaTarget} keyboardType="numeric" placeholder="50" placeholderTextColor={colors.textMuted} />
+                  </View>
+                  <View style={s.scBtnRow}>
+                    <TouchableOpacity style={s.scBackBtn} onPress={() => setSchedinaStep(1)}>
+                      <Ionicons name="arrow-back" size={16} color={colors.textMuted} />
+                      <Text style={s.scBackText}>Indietro</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.scNextBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSchedinaStep(3); }}>
+                      <Text style={s.scNextText}>Avanti</Text>
+                      <Ionicons name="arrow-forward" size={16} color={colors.background} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Step 3: Risk */}
+              {schedinaStep === 3 && (
+                <View style={s.scStepContent}>
+                  <Text style={s.scStepTitle}>Livello di rischio?</Text>
+                  <Text style={s.scStepSub}>Scegli quanto vuoi rischiare</Text>
+                  <View style={s.scRiskOptions}>
+                    {RISK_LEVELS.map(r => (
+                      <TouchableOpacity key={r.key} style={[s.scRiskOption, schedinaRisk === r.key && s.scRiskOptionActive]} onPress={() => { Haptics.selectionAsync(); setSchedinaRisk(r.key); }}>
+                        <Text style={s.scRiskEmoji}>{r.emoji}</Text>
+                        <Text style={[s.scRiskLabel, schedinaRisk === r.key && s.scRiskLabelActive]}>{r.label}</Text>
+                        <Text style={s.scRiskDesc}>{r.desc}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={s.scBtnRow}>
+                    <TouchableOpacity style={s.scBackBtn} onPress={() => setSchedinaStep(2)}>
+                      <Ionicons name="arrow-back" size={16} color={colors.textMuted} />
+                      <Text style={s.scBackText}>Indietro</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.scGenerateBtn} onPress={handleGenerateSchedina}>
+                      <Ionicons name="sparkles" size={16} color={colors.background} />
+                      <Text style={s.scGenerateText}>Genera Schedina</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Step 4: Generating / Result */}
+              {schedinaStep === 4 && (
+                <View style={s.scStepContent}>
+                  {schedinaGenerating ? (
+                    <View style={s.scGenerating}>
+                      <ActivityIndicator size="large" color={colors.gold} />
+                      <Text style={s.scGenTitle}>L'AI sta creando la tua schedina...</Text>
+                      <Text style={s.scGenSub}>Analisi di {schedinaEvents} eventi in corso</Text>
+                    </View>
+                  ) : schedinaResult ? (
+                    <View style={s.scResult}>
+                      <View style={s.scResultHeader}>
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Text style={s.scResultTitle}>Ecco la tua schedina personalizzata</Text>
+                      </View>
+                      <Text style={s.scResultSub}>Abbiamo creato questa schedina in base ai tuoi obiettivi utilizzando l'analisi AI.</Text>
+                      <View style={s.scResultParams}>
+                        <View style={s.scResultParam}><Text style={s.scResultParamLabel}>Eventi</Text><Text style={s.scResultParamValue}>{schedinaEvents}</Text></View>
+                        <View style={s.scResultParam}><Text style={s.scResultParamLabel}>Puntata</Text><Text style={s.scResultParamValue}>€{schedinaStake}</Text></View>
+                        <View style={s.scResultParam}><Text style={s.scResultParamLabel}>Target</Text><Text style={s.scResultParamValue}>€{schedinaTarget}</Text></View>
+                        <View style={s.scResultParam}><Text style={s.scResultParamLabel}>Rischio</Text><Text style={s.scResultParamValue}>{RISK_LEVELS.find(r => r.key === schedinaRisk)?.emoji}</Text></View>
+                      </View>
+                      <View style={s.scResultBody}>
+                        <Text style={s.scResultText}>{schedinaResult.response}</Text>
+                      </View>
+                      <TouchableOpacity style={s.scNewBtn} onPress={() => { setSchedinaStep(0); setSchedinaResult(null); }}>
+                        <Ionicons name="refresh" size={16} color={colors.primary} />
+                        <Text style={s.scNewBtnText}>Crea un'altra schedina</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <BadgeUnlockPopup
         visible={!!badgePopup}
@@ -332,4 +565,59 @@ const s = StyleSheet.create({
   lockedTierText: { color: colors.textSecondary, fontSize: 14 },
   lockedCTA: { backgroundColor: colors.gold, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, marginTop: 12 },
   lockedCTAText: { color: colors.background, fontWeight: '900', fontSize: 16 },
+  // Schedina CTA
+  schedinaCTA: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.gold, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 18 },
+  schedinaCTATextWrap: { flex: 1 },
+  schedinaCTATitle: { color: colors.background, fontSize: 16, fontWeight: '900' },
+  schedinaCTASub: { color: 'rgba(0,0,0,0.5)', fontSize: 11, fontWeight: '600', marginTop: 1 },
+  // Schedina Modal
+  scModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  scModal: { backgroundColor: colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', paddingTop: 20, paddingHorizontal: 20 },
+  scHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  scHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scHeaderTitle: { color: colors.gold, fontSize: 16, fontWeight: '800' },
+  scCloseBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  scSteps: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 20 },
+  scStepDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  scStepDotActive: { backgroundColor: colors.gold, width: 24 },
+  scStepContent: { gap: 16 },
+  scStepTitle: { color: colors.textPrimary, fontSize: 22, fontWeight: '900', textAlign: 'center' },
+  scStepSub: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  scOptionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 8 },
+  scOption: { width: 64, height: 64, borderRadius: 18, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.border },
+  scOptionActive: { borderColor: colors.gold, backgroundColor: 'rgba(255,215,0,0.1)' },
+  scOptionText: { color: colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  scOptionTextActive: { color: colors.gold },
+  scInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 18 },
+  scInputPrefix: { color: colors.gold, fontSize: 24, fontWeight: '900', marginRight: 8 },
+  scInput: { flex: 1, color: colors.textPrimary, fontSize: 24, fontWeight: '800', paddingVertical: 16 },
+  scBtnRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  scBackBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
+  scBackText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  scNextBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.primary },
+  scNextText: { color: colors.background, fontSize: 15, fontWeight: '800' },
+  scRiskOptions: { gap: 10, marginTop: 4 },
+  scRiskOption: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.background, borderRadius: 16, padding: 16, borderWidth: 2, borderColor: colors.border },
+  scRiskOptionActive: { borderColor: colors.gold, backgroundColor: 'rgba(255,215,0,0.06)' },
+  scRiskEmoji: { fontSize: 24 },
+  scRiskLabel: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', flex: 1 },
+  scRiskLabelActive: { color: colors.gold },
+  scRiskDesc: { color: colors.textMuted, fontSize: 11, flex: 2 },
+  scGenerateBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.gold },
+  scGenerateText: { color: colors.background, fontSize: 15, fontWeight: '900' },
+  scGenerating: { alignItems: 'center', gap: 12, paddingVertical: 40 },
+  scGenTitle: { color: colors.gold, fontSize: 16, fontWeight: '800' },
+  scGenSub: { color: colors.textMuted, fontSize: 12 },
+  scResult: { gap: 14 },
+  scResultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scResultTitle: { color: colors.primary, fontSize: 17, fontWeight: '800', flex: 1 },
+  scResultSub: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  scResultParams: { flexDirection: 'row', gap: 8 },
+  scResultParam: { flex: 1, backgroundColor: colors.background, borderRadius: 14, padding: 10, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: colors.border },
+  scResultParamLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '600', textTransform: 'uppercase' },
+  scResultParamValue: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+  scResultBody: { backgroundColor: colors.background, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
+  scResultText: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  scNewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
+  scNewBtnText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
 });

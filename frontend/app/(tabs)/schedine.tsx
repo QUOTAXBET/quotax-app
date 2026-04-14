@@ -28,7 +28,7 @@ export default function SchedineAIScreen() {
   const [followingId, setFollowingId] = useState<string | null>(null);
   const [badgePopup, setBadgePopup] = useState<any>(null);
 
-  const userTier = !isAuthenticated ? 'guest' : isPremium ? 'premium' : 'free';
+  const userTier = !isAuthenticated ? 'guest' : (user?.subscription_tier === 'premium' ? 'premium' : user?.subscription_tier === 'pro' ? 'pro' : 'free');
 
   const fetchData = async () => {
     try {

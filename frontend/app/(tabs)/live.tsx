@@ -17,7 +17,7 @@ export default function TopPicksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const userTier = !isAuthenticated ? 'guest' : isPremium ? 'premium' : 'free';
+  const userTier = !isAuthenticated ? 'guest' : (user?.subscription_tier === 'premium' ? 'premium' : user?.subscription_tier === 'pro' ? 'pro' : 'free');
 
   useEffect(() => {
     Animated.loop(

@@ -137,6 +137,12 @@ export const weeklyReportAPI = {
   get: async (userId: string) => (await api.get(`/report/weekly/${userId}`)).data,
 };
 
+// Referral
+export const referralAPI = {
+  get: async (userId: string) => (await api.get(`/referral/${userId}`)).data,
+  apply: async (code: string, userId: string) => (await api.post('/referral/apply', { code, user_id: userId })).data,
+};
+
 // AI
 export const aiAPI = {
   getPredictions: async () => (await api.get('/ai/predictions')).data,

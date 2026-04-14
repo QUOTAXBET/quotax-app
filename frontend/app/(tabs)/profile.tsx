@@ -5,9 +5,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { badgesAPI, leaderboardAPI, devAPI, userStatsAPI, weeklyReportAPI } from '../../src/utils/api';
+import { badgesAPI, leaderboardAPI, devAPI, userStatsAPI, weeklyReportAPI, referralAPI } from '../../src/utils/api';
 import { colors } from '../../src/utils/theme';
 import { LineChart } from 'react-native-gifted-charts';
+import * as Clipboard from 'expo-clipboard';
+import { Share, Platform } from 'react-native';
 
 const BADGE_DEFINITIONS_FALLBACK = [
   { badge_id: 'community', name: 'Membro della Community', description: 'Ti sei registrato su EdgeBet!', icon: 'people', category: 'beginner', points: 50 },
@@ -63,13 +65,15 @@ export default function ProfileScreen() {
   const [totalPoints, setTotalPoints] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'badges' | 'leaderboard' | 'stats'>('badges');
+  const [activeSection, setActiveSection] = useState<'badges' | 'leaderboard' | 'stats' | 'referral'>('badges');
   const [devOpen, setDevOpen] = useState(false);
   const [switchingTier, setSwitchingTier] = useState<string | null>(null);
   const [statsData, setStatsData] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [referralData, setReferralData] = useState<any>(null);
+  const [referralLoading, setReferralLoading] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const statsEntryAnim = useRef(new Animated.Value(0)).current;
 
@@ -124,7 +128,23 @@ export default function ProfileScreen() {
     if (activeSection === 'stats' && !statsData && isProOrElite) {
       fetchStats();
     }
-  }, [activeSection, isProOrElite]);
+    if (activeSection === 'referral' && !referralData && isAuthenticated && user?.user_id) {
+      fetchReferral();
+    }
+  }, [activeSection, isProOrElite, isAuthenticated]);
+
+  const fetchReferral = async () => {
+    if (!user?.user_id) return;
+    setReferralLoading(true);
+    try {
+      const data = await referralAPI.get(user.user_id);
+      setReferralData(data);
+    } catch (e) {
+      console.error('Referral fetch error:', e);
+    } finally {
+      setReferralLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -332,6 +352,12 @@ export default function ProfileScreen() {
               <Text style={[st.toggleText, activeSection === 'stats' && st.toggleTextActive, activeSection !== 'stats' && { color: colors.gold }]}>Stats</Text>
             </TouchableOpacity>
           )}
+          {isAuthenticated && (
+            <TouchableOpacity style={[st.toggleBtn, activeSection === 'referral' && st.toggleActive]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveSection('referral'); }}>
+              <Ionicons name="gift" size={16} color={activeSection === 'referral' ? colors.background : colors.primary} />
+              <Text style={[st.toggleText, activeSection === 'referral' && st.toggleTextActive, activeSection !== 'referral' && { color: colors.primary }]}>Invita</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Badges Grid */}
@@ -412,8 +438,143 @@ export default function ProfileScreen() {
             isElite={isElite}
           />
         )}
+
+        {/* Referral Section */}
+        {activeSection === 'referral' && isAuthenticated && (
+          <ReferralSection data={referralData} loading={referralLoading} onRefresh={fetchReferral} />
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Referral Section Component
+function ReferralSection({ data, loading, onRefresh }: { data: any; loading: boolean; onRefresh: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const entryAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (data) {
+      Animated.timing(entryAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    }
+  }, [data]);
+
+  const handleCopy = async () => {
+    if (!data?.referral_code) return;
+    await Clipboard.setStringAsync(data.referral_code);
+    setCopied(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    if (!data?.referral_code) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Share.share({
+        message: `Prova EdgeBet! Usa il mio codice ${data.referral_code} per registrarti e sbloccare vantaggi esclusivi!`,
+      });
+    } catch (e) {}
+  };
+
+  if (loading || !data) {
+    return (
+      <View style={st.refContainer}>
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 30 }} />
+        <Text style={st.statsLoadText}>Caricamento referral...</Text>
+      </View>
+    );
+  }
+
+  const count = data.referral_count || 0;
+  const nextM = data.next_milestone;
+  const progressTarget = nextM ? nextM.count : 10;
+  const progressWidth = Math.min((count / progressTarget) * 100, 100);
+
+  return (
+    <Animated.View style={[st.refContainer, { opacity: entryAnim, transform: [{ translateY: entryAnim.interpolate({ inputRange: [0, 1], outputRange: [25, 0] }) }] }]}>
+      {/* Header */}
+      <View style={st.refHeader}>
+        <Ionicons name="people" size={22} color={colors.primary} />
+        <View>
+          <Text style={st.refTitle}>Invita amici</Text>
+          <Text style={st.refSub}>Condividi il tuo codice e sblocca premi esclusivi</Text>
+        </View>
+      </View>
+
+      {/* Code Card */}
+      <View style={st.refCodeCard}>
+        <Text style={st.refCodeLabel}>Il tuo codice referral</Text>
+        <Text style={st.refCode}>{data.referral_code}</Text>
+        <View style={st.refCodeBtns}>
+          <TouchableOpacity style={[st.refCopyBtn, copied && st.refCopyBtnDone]} onPress={handleCopy} activeOpacity={0.8}>
+            <Ionicons name={copied ? 'checkmark' : 'copy'} size={16} color={copied ? colors.background : colors.primary} />
+            <Text style={[st.refCopyText, copied && st.refCopyTextDone]}>{copied ? 'Copiato!' : 'Copia codice'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={st.refShareBtn} onPress={handleShare} activeOpacity={0.8}>
+            <Ionicons name="share-social" size={16} color={colors.background} />
+            <Text style={st.refShareText}>Condividi</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Stats */}
+      <View style={st.refStatsCard}>
+        <View style={st.refStatItem}>
+          <Text style={st.refStatNum}>{count}</Text>
+          <Text style={st.refStatLabel}>Amici invitati</Text>
+        </View>
+        {nextM && (
+          <View style={st.refStatItem}>
+            <Text style={st.refStatNum}>{nextM.remaining}</Text>
+            <Text style={st.refStatLabel}>Al prossimo premio</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Progress Bar */}
+      {nextM && (
+        <View style={st.refProgressCard}>
+          <View style={st.refProgressHeader}>
+            <Text style={st.refProgressLabel}>Prossimo premio: {nextM.emoji} {nextM.badge}</Text>
+            <Text style={st.refProgressCount}>{count}/{nextM.count}</Text>
+          </View>
+          <View style={st.refProgressBar}>
+            <Animated.View style={[st.refProgressFill, { width: `${progressWidth}%` }]} />
+          </View>
+        </View>
+      )}
+
+      {/* Milestones */}
+      <View style={st.refMilestones}>
+        <Text style={st.refMilestonesTitle}>Premi disponibili</Text>
+        {(data.milestones || []).map((m: any, i: number) => (
+          <View key={i} style={[st.refMilestone, m.unlocked && st.refMilestoneUnlocked]}>
+            <View style={[st.refMilestoneIcon, m.unlocked && st.refMilestoneIconDone]}>
+              <Text style={st.refMilestoneEmoji}>{m.emoji}</Text>
+            </View>
+            <View style={st.refMilestoneInfo}>
+              <Text style={[st.refMilestoneName, m.unlocked && st.refMilestoneNameDone]}>{m.badge}</Text>
+              <Text style={st.refMilestoneDesc}>
+                {m.count === 1 ? 'Invita 1 amico' : `Invita ${m.count} amici`}
+                {m.reward === 'pro_1month' ? ' — 1 mese PRO gratis' : m.reward === 'elite_1month' ? ' — 1 mese ELITE gratis' : ''}
+              </Text>
+            </View>
+            {m.unlocked ? (
+              <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+            ) : (
+              <Ionicons name="lock-closed" size={18} color={colors.textMuted} />
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* CTA */}
+      <TouchableOpacity style={st.refCTA} onPress={handleShare} activeOpacity={0.85}>
+        <Ionicons name="rocket" size={18} color={colors.background} />
+        <Text style={st.refCTAText}>Invita ora e sblocca premi</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -873,4 +1034,42 @@ const st = StyleSheet.create({
   reportAIText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
   reportEmpty: { alignItems: 'center', gap: 8, paddingVertical: 20 },
   reportEmptyText: { color: colors.textMuted, fontSize: 12 },
+  // Referral
+  refContainer: { marginHorizontal: 20, gap: 14 },
+  refHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  refTitle: { color: colors.primary, fontSize: 18, fontWeight: '800' },
+  refSub: { color: colors.textMuted, fontSize: 11 },
+  refCodeCard: { backgroundColor: 'rgba(0,255,136,0.05)', borderRadius: 20, padding: 20, borderWidth: 1.5, borderColor: 'rgba(0,255,136,0.15)', alignItems: 'center', gap: 10 },
+  refCodeLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  refCode: { color: colors.primary, fontSize: 28, fontWeight: '900', letterSpacing: 3 },
+  refCodeBtns: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  refCopyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
+  refCopyBtnDone: { backgroundColor: colors.primary, borderColor: colors.primary },
+  refCopyText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  refCopyTextDone: { color: colors.background },
+  refShareBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: colors.primary },
+  refShareText: { color: colors.background, fontSize: 13, fontWeight: '700' },
+  refStatsCard: { flexDirection: 'row', gap: 10 },
+  refStatItem: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  refStatNum: { color: colors.primary, fontSize: 28, fontWeight: '900' },
+  refStatLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '600', marginTop: 4, textTransform: 'uppercase' },
+  refProgressCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
+  refProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  refProgressLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  refProgressCount: { color: colors.primary, fontSize: 14, fontWeight: '800' },
+  refProgressBar: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  refProgressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
+  refMilestones: { backgroundColor: colors.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  refMilestonesTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  refMilestone: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  refMilestoneUnlocked: { opacity: 1 },
+  refMilestoneIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  refMilestoneIconDone: { backgroundColor: 'rgba(0,255,136,0.1)', borderColor: 'rgba(0,255,136,0.2)' },
+  refMilestoneEmoji: { fontSize: 20 },
+  refMilestoneInfo: { flex: 1, gap: 2 },
+  refMilestoneName: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  refMilestoneNameDone: { color: colors.primary },
+  refMilestoneDesc: { color: colors.textMuted, fontSize: 11 },
+  refCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 16 },
+  refCTAText: { color: colors.background, fontSize: 15, fontWeight: '800' },
 });

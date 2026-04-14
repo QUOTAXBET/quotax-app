@@ -42,6 +42,7 @@ export default function EliteScreen() {
   const [schedinaRisk, setSchedinaRisk] = useState('medium');
   const [schedinaGenerating, setSchedinaGenerating] = useState(false);
   const [schedinaResult, setSchedinaResult] = useState<any>(null);
+  const [showSchedinaLock, setShowSchedinaLock] = useState(false);
   const ctaPulse = useRef(new Animated.Value(1)).current;
   const [access, setAccess] = useState<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -251,16 +252,19 @@ Formatta in modo chiaro e leggibile. Usa emoji per rendere visivamente accattiva
             <Text style={s.charCount}>{query.length}/200</Text>
           </View>
 
-          {/* Schedina Personalizzata CTA */}
-          {!response && !loading && (
+          {/* Schedina Personalizzata CTA — Solo Pro (bloccata) e Elite (attiva) */}
+          {!response && !loading && (userTier === 'pro' || userTier === 'premium') && (
             <Animated.View style={{ transform: [{ scale: ctaPulse }], marginHorizontal: 16, marginBottom: 8 }}>
-              <TouchableOpacity style={s.schedinaCTA} onPress={handleOpenSchedina} activeOpacity={0.85}>
-                <Ionicons name="flash" size={20} color={colors.background} />
+              <TouchableOpacity style={[s.schedinaCTA, userTier === 'pro' && s.schedinaCTALocked]} onPress={() => {
+                if (userTier === 'premium') { handleOpenSchedina(); } else { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowSchedinaLock(true); }
+              }} activeOpacity={0.85}>
+                {userTier === 'pro' && <Ionicons name="lock-closed" size={16} color="rgba(0,0,0,0.4)" style={{ position: 'absolute', top: 10, right: 12 }} />}
+                <Ionicons name="flash" size={20} color={userTier === 'premium' ? colors.background : colors.gold} />
                 <View style={s.schedinaCTATextWrap}>
-                  <Text style={s.schedinaCTATitle}>Schedina Personalizzata AI</Text>
-                  <Text style={s.schedinaCTASub}>L'AI crea la schedina perfetta per te</Text>
+                  <Text style={[s.schedinaCTATitle, userTier === 'pro' && { color: colors.gold }]}>Schedina Personalizzata AI</Text>
+                  <Text style={[s.schedinaCTASub, userTier === 'pro' && { color: colors.textMuted }]}>{userTier === 'premium' ? "L'AI crea la schedina perfetta per te" : 'Disponibile solo con piano Elite'}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.background} />
+                <Ionicons name="chevron-forward" size={18} color={userTier === 'premium' ? colors.background : colors.gold} />
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -336,6 +340,27 @@ Formatta in modo chiaro e leggibile. Usa emoji per rendere visivamente accattiva
       </KeyboardAvoidingView>
 
       <View style={s.disclaimer}><Text style={s.disclaimerText}>Simulazione a scopo dimostrativo. Non incoraggiamo il gioco d'azzardo.</Text></View>
+
+      {/* Schedina Lock Popup (Pro) */}
+      <Modal visible={showSchedinaLock} transparent animationType="fade" onRequestClose={() => setShowSchedinaLock(false)}>
+        <View style={s.scLockOverlay}>
+          <View style={s.scLockCard}>
+            <TouchableOpacity style={s.scLockClose} onPress={() => setShowSchedinaLock(false)}>
+              <Ionicons name="close" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+            <Ionicons name="lock-closed" size={40} color={colors.gold} />
+            <Text style={s.scLockTitle}>Funzione disponibile solo per Elite</Text>
+            <Text style={s.scLockDesc}>Crea schedine personalizzate con l'AI in base ai tuoi obiettivi (eventi, puntata e vincita desiderata)</Text>
+            <TouchableOpacity style={s.scLockCTA} onPress={() => { setShowSchedinaLock(false); router.push('/subscribe?plan=elite'); }} activeOpacity={0.85}>
+              <Ionicons name="diamond" size={16} color={colors.background} />
+              <Text style={s.scLockCTAText}>Passa a Elite</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.scLockSecondary} onPress={() => { setShowSchedinaLock(false); router.push('/plans'); }} activeOpacity={0.8}>
+              <Text style={s.scLockSecondaryText}>Scopri i vantaggi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Schedina Personalizzata Modal */}
       <Modal visible={showSchedina} transparent animationType="slide" onRequestClose={() => setShowSchedina(false)}>
@@ -566,7 +591,8 @@ const s = StyleSheet.create({
   lockedCTA: { backgroundColor: colors.gold, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, marginTop: 12 },
   lockedCTAText: { color: colors.background, fontWeight: '900', fontSize: 16 },
   // Schedina CTA
-  schedinaCTA: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.gold, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 18 },
+  schedinaCTA: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.gold, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 18, position: 'relative' },
+  schedinaCTALocked: { backgroundColor: 'rgba(255,215,0,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.25)' },
   schedinaCTATextWrap: { flex: 1 },
   schedinaCTATitle: { color: colors.background, fontSize: 16, fontWeight: '900' },
   schedinaCTASub: { color: 'rgba(0,0,0,0.5)', fontSize: 11, fontWeight: '600', marginTop: 1 },
@@ -620,4 +646,14 @@ const s = StyleSheet.create({
   scResultText: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
   scNewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
   scNewBtnText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+  // Schedina Lock Popup (Pro)
+  scLockOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  scLockCard: { backgroundColor: colors.card, borderRadius: 26, padding: 28, alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.2)', width: '100%', maxWidth: 340, position: 'relative' },
+  scLockClose: { position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: 10, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  scLockTitle: { color: colors.gold, fontSize: 18, fontWeight: '900', textAlign: 'center' },
+  scLockDesc: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  scLockCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.gold, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 16, width: '100%', marginTop: 4 },
+  scLockCTAText: { color: colors.background, fontSize: 16, fontWeight: '900' },
+  scLockSecondary: { paddingVertical: 8 },
+  scLockSecondaryText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
 });

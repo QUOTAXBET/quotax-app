@@ -288,6 +288,20 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Legal Links */}
+        <View style={st.legalSection}>
+          <TouchableOpacity style={st.legalBtn} onPress={() => router.push('/privacy')} activeOpacity={0.7}>
+            <Ionicons name="shield-checkmark" size={18} color={colors.textMuted} />
+            <Text style={st.legalBtnText}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={st.legalBtn} onPress={() => router.push('/terms')} activeOpacity={0.7}>
+            <Ionicons name="document-text" size={18} color={colors.textMuted} />
+            <Text style={st.legalBtnText}>Termini e Condizioni</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
         {/* Dev Panel - Tier Switcher */}
         <TouchableOpacity 
           style={st.devToggle} 
@@ -1034,6 +1048,10 @@ const st = StyleSheet.create({
   reportAIText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
   reportEmpty: { alignItems: 'center', gap: 8, paddingVertical: 20 },
   reportEmptyText: { color: colors.textMuted, fontSize: 12 },
+  // Legal
+  legalSection: { marginHorizontal: 20, gap: 6, marginTop: 8, marginBottom: 8 },
+  legalBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
+  legalBtnText: { flex: 1, color: colors.textSecondary, fontSize: 14, fontWeight: '500' },
   // Referral
   refContainer: { marginHorizontal: 20, gap: 14 },
   refHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -40,7 +40,7 @@ async def get_daily_opportunities():
             "edge_percentage": edge_pct, "risk_level": pred["risk_level"],
             "value_rating": "HIGH VALUE" if pred["confidence"] >= 70 else "VALUE BET",
             "explanation": random.choice(explanations),
-            "ai_analysis": f"Il modello EdgeBet AI ha analizzato {random.randint(150, 500)} fattori per questa partita. Edge stimato: +{edge_pct}% rispetto alle quote di mercato. Confidenza del modello: {pred['confidence']}%.",
+            "ai_analysis": f"Il modello QuotaX AI ha analizzato {random.randint(150, 500)} fattori per questa partita. Edge stimato: +{edge_pct}% rispetto alle quote di mercato. Confidenza del modello: {pred['confidence']}%.",
             "rank": i + 1,
         })
 

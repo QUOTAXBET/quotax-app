@@ -18,7 +18,7 @@ except ImportError:
     logger.warning("emergentintegrations not available for weekly report AI")
 
 
-REPORT_SYSTEM_PROMPT = """Sei EdgeBet AI, un analista sportivo esperto. Genera un breve report settimanale (max 150 parole) in italiano per un utente di betting simulato.
+REPORT_SYSTEM_PROMPT = """Sei QuotaX AI, un analista sportivo esperto. Genera un breve report settimanale (max 150 parole) in italiano per un utente di betting simulato.
 Includi:
 1. Un commento sulla performance della settimana
 2. Un consiglio strategico per la prossima settimana

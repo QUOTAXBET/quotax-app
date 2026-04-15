@@ -1,20 +1,20 @@
-# Email templates for EdgeBet marketing automation
+# Email templates for QuotaX marketing automation
 # These templates are used by the auto-email system and the admin preview
 
 EMAIL_TEMPLATES = {
     "welcome": {
         "template_id": "welcome",
         "name": "Welcome",
-        "subject": "Benvenuto su EdgeBet — inizia da qui",
+        "subject": "Benvenuto su QuotaX — inizia da qui",
         "preview_text": "Scopri come usare l'AI per analizzare le migliori quote ogni giorno.",
         "body_html": """
 <div style="max-width:600px;margin:0 auto;background:#0B0F14;color:#E5E7EB;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border-radius:16px;overflow:hidden;">
   <div style="background:linear-gradient(135deg,#0B0F14,#1A2332);padding:40px 32px;text-align:center;">
-    <div style="font-size:32px;font-weight:900;color:#00FF88;">EdgeBet</div>
+    <div style="font-size:32px;font-weight:900;color:#00FF88;">QuotaX</div>
     <div style="color:#6B7280;font-size:14px;margin-top:8px;">L'AI che batte i bookmaker</div>
   </div>
   <div style="padding:32px;">
-    <h2 style="color:#FFFFFF;font-size:22px;margin:0 0 16px;">Benvenuto su EdgeBet!</h2>
+    <h2 style="color:#FFFFFF;font-size:22px;margin:0 0 16px;">Benvenuto su QuotaX!</h2>
     <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin:0 0 20px;">Scopri come usare l'AI per analizzare le migliori quote ogni giorno.</p>
     <div style="background:#111820;border-radius:12px;padding:20px;margin:0 0 24px;">
       <div style="color:#00FF88;font-weight:700;margin-bottom:12px;">Cosa puoi fare ora:</div>
@@ -28,7 +28,7 @@ EMAIL_TEMPLATES = {
     <a href="#" style="display:inline-block;background:#00FF88;color:#0B0F14;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:16px;">Inizia Ora</a>
   </div>
   <div style="padding:20px 32px;border-top:1px solid #1F2933;text-align:center;">
-    <div style="color:#4B5563;font-size:12px;">EdgeBet — Pronostici AI basati su dati, non su opinioni</div>
+    <div style="color:#4B5563;font-size:12px;">QuotaX — Pronostici AI basati su dati, non su opinioni</div>
   </div>
 </div>""",
         "trigger": "Registrazione utente",
@@ -76,7 +76,7 @@ BADGE_DEFINITIONS = [
     {"badge_id": "top_pick_win", "name": "Occhio d'Aquila", "description": "Un Top Pick che hai seguito ha vinto!", "icon": "eye", "category": "intermediate"},
     {"badge_id": "elite_user", "name": "Membro Elite", "description": "Hai usato la funzione Elite AI!", "icon": "diamond", "category": "elite"},
     {"badge_id": "profit_master", "name": "Re del Profitto", "description": "ROI personale sopra il 20%!", "icon": "trending-up", "category": "advanced"},
-    {"badge_id": "community", "name": "Membro della Community", "description": "Ti sei registrato su EdgeBet!", "icon": "people", "category": "beginner"},
+    {"badge_id": "community", "name": "Membro della Community", "description": "Ti sei registrato su QuotaX!", "icon": "people", "category": "beginner"},
 ]
 
 # Notification type definitions
@@ -198,7 +198,7 @@ MOCK_LEADERBOARD = [
 ]
 
 # Elite AI system prompt
-ELITE_SYSTEM_PROMPT = """Sei EdgeBet AI, un esperto analista sportivo basato su dati e statistica avanzata.
+ELITE_SYSTEM_PROMPT = """Sei QuotaX AI, un esperto analista sportivo basato su dati e statistica avanzata.
 Rispondi SEMPRE in italiano. Quando l'utente chiede una previsione su un evento sportivo:
 
 1. Analizza le squadre/atleti menzionati

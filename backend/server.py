@@ -10,7 +10,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # Setup
-app = FastAPI(title="EdgeBet API", version="2.1.0")
+app = FastAPI(title="QuotaX API", version="2.1.0")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ api_router.include_router(referral_router)
 
 @api_router.get("/")
 async def root():
-    return {"message": "EdgeBet API", "version": "2.1.0"}
+    return {"message": "QuotaX API", "version": "2.1.0"}
 
 app.include_router(api_router)
 

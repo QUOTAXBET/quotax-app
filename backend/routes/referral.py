@@ -16,10 +16,10 @@ REFERRAL_MILESTONES = [
 
 
 def _generate_code() -> str:
-    """Generate a unique referral code like EDGE-A1B2C3"""
+    """Generate a unique referral code like QX-A1B2C3"""
     chars = string.ascii_uppercase + string.digits
     suffix = ''.join(random.choices(chars, k=6))
-    return f"EDGE-{suffix}"
+    return f"QX-{suffix}"
 
 
 @router.get("/referral/{user_id}")
@@ -40,7 +40,7 @@ async def get_referral_info(user_id: str):
                 referral_code = code
                 break
         if not referral_code:
-            referral_code = f"EDGE-{user_id[:6].upper()}"
+            referral_code = f"QX-{user_id[:6].upper()}"
 
         await db.users.update_one(
             {"user_id": user_id},

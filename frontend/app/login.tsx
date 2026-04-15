@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Animated, Easing, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,11 +137,8 @@ export default function LoginScreen() {
             shadowRadius: glowShadowRadius,
             shadowOpacity: glowAnim,
           }]}>
-            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.logoIcon}>
-              <Ionicons name="trending-up" size={40} color={colors.background} />
-            </LinearGradient>
+            <Image source={require('../assets/images/quotax-logo.png')} style={{ width: 200, height: 80 }} resizeMode="contain" />
           </Animated.View>
-          <Text style={styles.title}>EdgeBet</Text>
           <Text style={styles.subtitle}>
             Unisciti a 2.400+ scommettitori che usano l'AI per battere i bookmaker
           </Text>

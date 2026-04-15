@@ -61,7 +61,7 @@ export default function EmailsScreen() {
       const res = await fetch(`${API_BASE}/api/emails/send-test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template_id: selectedTemplate.template_id, email: 'test@edgebet.com' }),
+        body: JSON.stringify({ template_id: selectedTemplate.template_id, email: 'test@quotax.com' }),
       });
       const data = await res.json();
       setSentMessage(data.message || 'Email inviata');
@@ -147,7 +147,7 @@ export default function EmailsScreen() {
             <View style={s.previewCard}>
               {/* Email header */}
               <View style={s.emailHeader}>
-                <Text style={s.emailLogo}>EdgeBet</Text>
+                <Text style={s.emailLogo}>QuotaX</Text>
                 {selectedTemplate.category === 'exclusive' && <Text style={[s.emailLogo, { color: colors.gold }]}>Elite</Text>}
                 <Text style={s.emailSubheader}>
                   {selectedTemplate.template_id === 'welcome' ? "L'AI che batte i bookmaker" :
@@ -229,10 +229,10 @@ export default function EmailsScreen() {
               {/* Email footer */}
               <View style={s.emailFooter}>
                 <Text style={s.emailFooterText}>
-                  {selectedTemplate.template_id === 'welcome' ? 'EdgeBet — Pronostici AI basati su dati, non su opinioni' :
-                   selectedTemplate.template_id === 'upsell' ? 'EdgeBet — Non perdere il tuo vantaggio' :
+                  {selectedTemplate.template_id === 'welcome' ? 'QuotaX — Pronostici AI basati su dati, non su opinioni' :
+                   selectedTemplate.template_id === 'upsell' ? 'QuotaX — Non perdere il tuo vantaggio' :
                    selectedTemplate.template_id === 'reminder' ? 'Ricevi questa email ogni mattina alle 10:00' :
-                   'EdgeBet Elite — Il vantaggio che nessun altro ha'}
+                   'QuotaX Elite — Il vantaggio che nessun altro ha'}
                 </Text>
               </View>
             </View>

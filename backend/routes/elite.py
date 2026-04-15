@@ -13,7 +13,7 @@ router = APIRouter()
 
 PRO_WEEKLY_LIMIT = 3  # Pro users get 3 requests per week
 
-ELITE_SYSTEM_PROMPT = """Sei EdgeBet AI, un esperto analista sportivo basato su dati e statistica avanzata.
+ELITE_SYSTEM_PROMPT = """Sei QuotaX AI, un esperto analista sportivo basato su dati e statistica avanzata.
 Rispondi SEMPRE in italiano. Quando l'utente chiede una previsione su un evento sportivo:
 
 1. Analizza le squadre/atleti menzionati
@@ -116,7 +116,7 @@ async def elite_ask(req: EliteAskRequest, request: Request):
             "user_id": user.user_id,
             "query": req.query,
             "response": response,
-            "model": "EdgeBet AI v2.0",
+            "model": "QuotaX AI v2.0",
             "created_at": datetime.now(timezone.utc),
         }
         await db.elite_chats.insert_one(chat_entry)
@@ -131,7 +131,7 @@ async def elite_ask(req: EliteAskRequest, request: Request):
             "query": req.query,
             "response": response,
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "model": "EdgeBet AI v2.0",
+            "model": "QuotaX AI v2.0",
             "remaining": remaining,
         }
     except HTTPException:
@@ -142,7 +142,7 @@ async def elite_ask(req: EliteAskRequest, request: Request):
             "query": req.query,
             "response": f"🏆 PREVISIONE: Basandomi sull'analisi dei dati disponibili per '{req.query}', il nostro modello AI suggerisce di attendere ulteriori dati prima di effettuare una previsione definitiva.\n\n📊 PROBABILITÀ: In fase di calcolo\n⚠️ RISCHIO: Medio\n💰 QUOTA CONSIGLIATA: Verificare le quote aggiornate\n🧠 ANALISI: Il sistema sta elaborando i dati. Riprova tra qualche secondo.",
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "model": "EdgeBet AI v2.0 (fallback)"
+            "model": "QuotaX AI v2.0 (fallback)"
         }
 
 

@@ -7,7 +7,7 @@ router = APIRouter()
 # ==================== BADGE DEFINITIONS (Updated & Complete) ====================
 
 BADGE_DEFINITIONS = [
-    {"badge_id": "community", "name": "Membro della Community", "description": "Ti sei registrato su EdgeBet!", "icon": "people", "category": "beginner", "points": 50},
+    {"badge_id": "community", "name": "Membro della Community", "description": "Ti sei registrato su QuotaX!", "icon": "people", "category": "beginner", "points": 50},
     {"badge_id": "first_follow", "name": "Prima Schedina", "description": "Hai seguito la tua prima schedina!", "icon": "bookmark", "category": "beginner", "points": 100},
     {"badge_id": "first_win", "name": "Prima Vittoria", "description": "La tua prima previsione corretta!", "icon": "trophy", "category": "beginner", "points": 150},
     {"badge_id": "ten_follows", "name": "Collezionista", "description": "Hai seguito 10 schedine!", "icon": "layers", "category": "intermediate", "points": 200},

@@ -1,4 +1,4 @@
-// EdgeBet Theme Colors
+// QuotaX Theme Colors
 export const colors = {
   // Base
   background: '#0B0F14',

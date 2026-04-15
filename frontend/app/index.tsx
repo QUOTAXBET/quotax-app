@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -113,15 +113,11 @@ export default function LandingPage() {
   return (
     <SafeAreaView style={st.container}>
       <View style={st.inner}>
-        {/* Logo — Bigger + Neon border glow */}
+        {/* Logo — QuotaX 3D Logo Image */}
         <View style={st.logoSection}>
           <Animated.View style={[st.logoContainer, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)) }]}>
-            <View style={st.logoRow}>
-              <Ionicons name="trending-up" size={36} color={C.green} />
-              <Text style={st.logoText}>EdgeBet</Text>
-            </View>
+            <Image source={require('../assets/images/quotax-logo.png')} style={st.logoImage} resizeMode="contain" />
           </Animated.View>
-          <Text style={st.logoBeta}>AI SPORTS PREDICTIONS</Text>
         </View>
 
         {/* Headline — More visible, contrast, subtle glow */}
@@ -191,10 +187,8 @@ const st = StyleSheet.create({
   inner: { flex: 1, justifyContent: 'space-evenly', paddingHorizontal: 24, paddingVertical: 8 },
   // Logo
   logoSection: { alignItems: 'center' },
-  logoContainer: { borderWidth: 1.5, borderColor: 'rgba(0,255,136,0.35)', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 24, backgroundColor: 'rgba(0,255,136,0.03)' },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center' },
-  logoText: { fontSize: 34, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
-  logoBeta: { fontSize: 10, color: C.green, fontWeight: '700', letterSpacing: 3, marginTop: 4 },
+  logoContainer: { alignItems: 'center' },
+  logoImage: { width: 260, height: 100 },
   // Headline
   headlineSection: { alignItems: 'center' },
   headline: { fontSize: 26, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 34 },

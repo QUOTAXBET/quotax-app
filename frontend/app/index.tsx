@@ -113,19 +113,15 @@ export default function LandingPage() {
   return (
     <SafeAreaView style={st.container}>
       <View style={st.inner}>
-        {/* Logo — QuotaX nativo flat */}
-        <View style={st.logoSection}>
-          <Animated.View style={[st.logoContainer, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)) }]}>
-            <View style={st.logoTextRow}>
-              <Text style={st.logoQuota}>Quota</Text>
-              <View>
-                <Ionicons name="trending-up" size={28} color={C.green} style={st.logoArrow} />
-                <Text style={st.logoX}>X</Text>
-              </View>
-            </View>
-          </Animated.View>
+        {/* Logo — QuotaX grande, centrato, animato */}
+        <Animated.View style={[st.logoSection, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)), transform: [{ scale: Animated.add(0.98, Animated.multiply(logoGlow, 0.02)) }] }]}>
+          <Ionicons name="trending-up" size={48} color={C.green} style={st.logoArrow} />
+          <View style={st.logoTextRow}>
+            <Text style={st.logoQuota}>Quota</Text>
+            <Text style={st.logoX}>X</Text>
+          </View>
           <Text style={st.logoSub}>AI SPORTS PREDICTIONS</Text>
-        </View>
+        </Animated.View>
 
         {/* Headline — More visible, contrast, subtle glow */}
         <View style={st.headlineSection}>
@@ -193,14 +189,12 @@ const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   inner: { flex: 1, justifyContent: 'space-evenly', paddingHorizontal: 24, paddingVertical: 8 },
   // Logo
-  logoSection: { alignItems: 'center' },
-  logoContainer: { alignItems: 'center' },
-  logoArrow: { alignSelf: 'center', marginBottom: -8 },
+  logoSection: { alignItems: 'center', gap: 2 },
+  logoArrow: { marginBottom: -12, marginLeft: 8 },
   logoTextRow: { flexDirection: 'row', alignItems: 'flex-end' },
-  logoQuota: { fontSize: 42, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
-  logoX: { fontSize: 48, fontWeight: '900', color: C.green, letterSpacing: -1 },
-  logoSub: { fontSize: 11, color: C.green, fontWeight: '700', letterSpacing: 4, marginTop: 6 },
-  logoImage: { width: 260, height: 100 },
+  logoQuota: { fontSize: 52, fontWeight: '900', color: '#FFFFFF', letterSpacing: -2 },
+  logoX: { fontSize: 60, fontWeight: '900', color: C.green, letterSpacing: -2, marginLeft: -4 },
+  logoSub: { fontSize: 13, color: C.green, fontWeight: '700', letterSpacing: 5, marginTop: 8 },
   // Headline
   headlineSection: { alignItems: 'center' },
   headline: { fontSize: 26, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 34 },

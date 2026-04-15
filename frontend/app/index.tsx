@@ -115,7 +115,7 @@ export default function LandingPage() {
       <View style={st.inner}>
         {/* Logo — QuotaX grande, centrato, animato */}
         <Animated.View style={[st.logoSection, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)), transform: [{ scale: Animated.add(0.98, Animated.multiply(logoGlow, 0.02)) }] }]}>
-          <Ionicons name="trending-up" size={44} color={C.green} />
+          <Ionicons name="trending-up" size={44} color={C.green} style={{ marginBottom: -8 }} />
           <View style={st.logoTextRow}>
             <Text style={st.logoQuota}>Quota</Text>
             <Text style={st.logoX}>X</Text>

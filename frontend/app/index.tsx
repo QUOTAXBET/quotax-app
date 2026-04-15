@@ -116,10 +116,12 @@ export default function LandingPage() {
         {/* Logo — QuotaX nativo flat */}
         <View style={st.logoSection}>
           <Animated.View style={[st.logoContainer, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)) }]}>
-            <Ionicons name="trending-up" size={38} color={C.green} style={st.logoArrow} />
             <View style={st.logoTextRow}>
               <Text style={st.logoQuota}>Quota</Text>
-              <Text style={st.logoX}>X</Text>
+              <View>
+                <Ionicons name="trending-up" size={28} color={C.green} style={st.logoArrow} />
+                <Text style={st.logoX}>X</Text>
+              </View>
             </View>
           </Animated.View>
           <Text style={st.logoSub}>AI SPORTS PREDICTIONS</Text>
@@ -193,11 +195,11 @@ const st = StyleSheet.create({
   // Logo
   logoSection: { alignItems: 'center' },
   logoContainer: { alignItems: 'center' },
-  logoArrow: { marginBottom: -6 },
-  logoTextRow: { flexDirection: 'row', alignItems: 'baseline' },
-  logoQuota: { fontSize: 42, fontWeight: '900', color: '#C0C0C0', letterSpacing: -1 },
+  logoArrow: { alignSelf: 'center', marginBottom: -8 },
+  logoTextRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  logoQuota: { fontSize: 42, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
   logoX: { fontSize: 48, fontWeight: '900', color: C.green, letterSpacing: -1 },
-  logoSub: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 4, marginTop: 6 },
+  logoSub: { fontSize: 11, color: C.green, fontWeight: '700', letterSpacing: 4, marginTop: 6 },
   logoImage: { width: 260, height: 100 },
   // Headline
   headlineSection: { alignItems: 'center' },

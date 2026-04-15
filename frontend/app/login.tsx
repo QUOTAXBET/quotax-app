@@ -137,12 +137,15 @@ export default function LoginScreen() {
             shadowRadius: glowShadowRadius,
             shadowOpacity: glowAnim,
           }]}>
-            <Ionicons name="trending-up" size={38} color={colors.primary} style={{ marginBottom: -4 }} />
-            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
               <Text style={styles.logoQuota}>Quota</Text>
-              <Text style={styles.logoXGreen}>X</Text>
+              <View>
+                <Ionicons name="trending-up" size={24} color={colors.primary} style={{ alignSelf: 'center', marginBottom: -6 }} />
+                <Text style={styles.logoXGreen}>X</Text>
+              </View>
             </View>
           </Animated.View>
+          <Text style={styles.logoSubGreen}>AI SPORTS PREDICTIONS</Text>
           <Text style={styles.subtitle}>
             Unisciti a 2.400+ scommettitori che usano l'AI per battere i bookmaker
           </Text>
@@ -214,8 +217,9 @@ const styles = StyleSheet.create({
   logoGlow: { shadowColor: '#00FF88', shadowOffset: { width: 0, height: 0 }, elevation: 10, marginBottom: 16 },
   logoIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginBottom: 10 },
-  logoQuota: { fontSize: 36, fontWeight: '900', color: '#C0C0C0', letterSpacing: -1 },
+  logoQuota: { fontSize: 36, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
   logoXGreen: { fontSize: 42, fontWeight: '900', color: colors.primary, letterSpacing: -1 },
+  logoSubGreen: { fontSize: 10, color: colors.primary, fontWeight: '700', letterSpacing: 4, marginTop: 6, marginBottom: 10 },
   subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 8 },
   features: { marginBottom: 28, gap: 10 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12 },

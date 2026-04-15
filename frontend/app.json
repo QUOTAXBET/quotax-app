@@ -5,27 +5,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "quotax",
-    "userInterfaceStyle": "dark",
+    "scheme": "frontend",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "bet.quotax.app",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Scansiona QR code per referral amici",
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "supportsTablet": true
     },
     "android": {
-      "package": "bet.quotax.app",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0B0F14"
+        "backgroundColor": "#000"
       },
-      "edgeToEdgeEnabled": true,
-      "permissions": []
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -40,18 +31,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#0B0F14"
+          "backgroundColor": "#000"
         }
       ],
       "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
     }
   }
 }

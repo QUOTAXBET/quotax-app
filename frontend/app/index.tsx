@@ -115,7 +115,7 @@ export default function LandingPage() {
       <View style={st.inner}>
         {/* Logo — QuotaX grande, centrato, animato */}
         <Animated.View style={[st.logoSection, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)), transform: [{ scale: Animated.add(0.98, Animated.multiply(logoGlow, 0.02)) }] }]}>
-          <Ionicons name="trending-up" size={48} color={C.green} style={st.logoArrow} />
+          <Ionicons name="trending-up" size={44} color={C.green} />
           <View style={st.logoTextRow}>
             <Text style={st.logoQuota}>Quota</Text>
             <Text style={st.logoX}>X</Text>
@@ -189,12 +189,11 @@ const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   inner: { flex: 1, justifyContent: 'space-evenly', paddingHorizontal: 24, paddingVertical: 8 },
   // Logo
-  logoSection: { alignItems: 'center', gap: 2 },
-  logoArrow: { marginBottom: -12, marginLeft: 8 },
-  logoTextRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  logoSection: { alignItems: 'center' },
+  logoTextRow: { flexDirection: 'row', alignItems: 'baseline' },
   logoQuota: { fontSize: 52, fontWeight: '900', color: '#FFFFFF', letterSpacing: -2 },
-  logoX: { fontSize: 60, fontWeight: '900', color: C.green, letterSpacing: -2, marginLeft: -4 },
-  logoSub: { fontSize: 13, color: C.green, fontWeight: '700', letterSpacing: 5, marginTop: 8 },
+  logoX: { fontSize: 52, fontWeight: '900', color: C.green, letterSpacing: -2 },
+  logoSub: { fontSize: 13, color: C.green, fontWeight: '700', letterSpacing: 5, marginTop: 2 },
   // Headline
   headlineSection: { alignItems: 'center' },
   headline: { fontSize: 26, fontWeight: '900', color: C.text, textAlign: 'center', lineHeight: 34 },

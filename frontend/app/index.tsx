@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -113,11 +113,16 @@ export default function LandingPage() {
   return (
     <SafeAreaView style={st.container}>
       <View style={st.inner}>
-        {/* Logo — QuotaX 3D Logo Image */}
+        {/* Logo — QuotaX nativo flat */}
         <View style={st.logoSection}>
           <Animated.View style={[st.logoContainer, { opacity: Animated.add(0.7, Animated.multiply(logoGlow, 0.3)) }]}>
-            <Image source={require('../assets/images/quotax-logo.png')} style={st.logoImage} resizeMode="contain" />
+            <Ionicons name="trending-up" size={38} color={C.green} style={st.logoArrow} />
+            <View style={st.logoTextRow}>
+              <Text style={st.logoQuota}>Quota</Text>
+              <Text style={st.logoX}>X</Text>
+            </View>
           </Animated.View>
+          <Text style={st.logoSub}>AI SPORTS PREDICTIONS</Text>
         </View>
 
         {/* Headline — More visible, contrast, subtle glow */}
@@ -188,6 +193,11 @@ const st = StyleSheet.create({
   // Logo
   logoSection: { alignItems: 'center' },
   logoContainer: { alignItems: 'center' },
+  logoArrow: { marginBottom: -6 },
+  logoTextRow: { flexDirection: 'row', alignItems: 'baseline' },
+  logoQuota: { fontSize: 42, fontWeight: '900', color: '#C0C0C0', letterSpacing: -1 },
+  logoX: { fontSize: 48, fontWeight: '900', color: C.green, letterSpacing: -1 },
+  logoSub: { fontSize: 11, color: C.muted, fontWeight: '700', letterSpacing: 4, marginTop: 6 },
   logoImage: { width: 260, height: 100 },
   // Headline
   headlineSection: { alignItems: 'center' },

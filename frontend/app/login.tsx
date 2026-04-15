@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Animated, Easing, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,7 +137,11 @@ export default function LoginScreen() {
             shadowRadius: glowShadowRadius,
             shadowOpacity: glowAnim,
           }]}>
-            <Image source={require('../assets/images/quotax-logo.png')} style={{ width: 200, height: 80 }} resizeMode="contain" />
+            <Ionicons name="trending-up" size={38} color={colors.primary} style={{ marginBottom: -4 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              <Text style={styles.logoQuota}>Quota</Text>
+              <Text style={styles.logoXGreen}>X</Text>
+            </View>
           </Animated.View>
           <Text style={styles.subtitle}>
             Unisciti a 2.400+ scommettitori che usano l'AI per battere i bookmaker
@@ -210,6 +214,8 @@ const styles = StyleSheet.create({
   logoGlow: { shadowColor: '#00FF88', shadowOffset: { width: 0, height: 0 }, elevation: 10, marginBottom: 16 },
   logoIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginBottom: 10 },
+  logoQuota: { fontSize: 36, fontWeight: '900', color: '#C0C0C0', letterSpacing: -1 },
+  logoXGreen: { fontSize: 42, fontWeight: '900', color: colors.primary, letterSpacing: -1 },
   subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 8 },
   features: { marginBottom: 28, gap: 10 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, padding: 14, borderRadius: 12 },

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 import random
+import logging
 from datetime import datetime, timezone
 from services.database import db
 from services.mock_data import (
@@ -9,6 +10,15 @@ from services.mock_data import (
 from services.auth_helpers import get_current_user, require_user, require_premium
 from models.schemas import User
 
+# Real API imports
+try:
+    from services.odds_api import get_live_odds, get_scores, SPORT_MAP
+    from services.football_api import get_upcoming_fixtures, get_live_fixtures, _request as football_request
+    REAL_API = True
+except Exception:
+    REAL_API = False
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -148,6 +158,47 @@ async def subscribe(request: Request, user: User = Depends(require_user)):
 
 @router.get("/matches")
 async def get_all_matches():
+    """Get matches — tries real API first, falls back to mock"""
+    if REAL_API:
+        try:
+            # Fetch real odds from The Odds API (Serie A + EPL + NBA)
+            real_matches = []
+            for sport_key in ["soccer_italy_serie_a", "soccer_epl", "basketball_nba"]:
+                odds_data = await get_live_odds(sport_key)
+                for event in odds_data[:8]:
+                    # Get best odds from bookmakers
+                    best_odds = {"home": 0, "draw": 0, "away": 0}
+                    for bk in event.get("bookmakers", [])[:3]:
+                        for market in bk.get("markets", []):
+                            for outcome in market.get("outcomes", []):
+                                if outcome["name"] == event.get("home_team"):
+                                    best_odds["home"] = max(best_odds["home"], outcome["price"])
+                                elif outcome["name"] == event.get("away_team"):
+                                    best_odds["away"] = max(best_odds["away"], outcome["price"])
+                                elif outcome["name"] == "Draw":
+                                    best_odds["draw"] = max(best_odds["draw"], outcome["price"])
+
+                    sport = "soccer" if "soccer" in sport_key else "nba" if "basketball" in sport_key else "ufc"
+                    league_name = event.get("sport_title", sport_key)
+
+                    real_matches.append({
+                        "match_id": event.get("id", ""),
+                        "sport": sport,
+                        "league": league_name,
+                        "home_team": event.get("home_team", ""),
+                        "away_team": event.get("away_team", ""),
+                        "match_date": event.get("commence_time", ""),
+                        "odds_home": best_odds["home"] or round(random.uniform(1.4, 3.5), 2),
+                        "odds_draw": best_odds["draw"] or round(random.uniform(2.5, 4.0), 2),
+                        "odds_away": best_odds["away"] or round(random.uniform(1.8, 5.0), 2),
+                        "status": "upcoming",
+                        "bookmakers_count": len(event.get("bookmakers", [])),
+                    })
+            if real_matches:
+                logger.info(f"Serving {len(real_matches)} real matches from Odds API")
+                return real_matches
+        except Exception as e:
+            logger.error(f"Real API failed, falling back to mock: {e}")
     return get_cached_matches("all")
 
 

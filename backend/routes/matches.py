@@ -261,8 +261,9 @@ async def get_all_matches():
                                 elif outcome["name"] == "Draw":
                                     best_odds["draw"] = max(best_odds["draw"], outcome["price"])
 
-                    sport = "soccer" if "soccer" in sport_key else "nba" if "basketball" in sport_key else "ufc"
-                    league_name = event.get("sport_title", sport_key)
+                    sport_k = event.get("sport_key", "")
+                    sport = "soccer" if "soccer" in sport_k else "nba" if "basketball" in sport_k else "ufc" if "mma" in sport_k else "soccer"
+                    league_name = event.get("sport_title", "")
 
                     real_matches.append({
                         "match_id": event.get("id", ""),

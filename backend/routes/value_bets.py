@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from services.mock_data import get_cached_matches, generate_predictions_for_matches
 
 try:
-    from services.odds_api import get_live_odds, calculate_value_bets
+    from services.odds_api import get_live_odds, calculate_value_bets, get_all_available_odds
     REAL_API = True
 except Exception:
     REAL_API = False
@@ -25,12 +25,12 @@ async def get_value_bets():
     if REAL_API:
         try:
             all_vb = []
-            for sport_key in ["soccer_italy_serie_a", "soccer_epl", "basketball_nba"]:
-                odds_data = await get_live_odds(sport_key)
-                vbs = calculate_value_bets(odds_data, min_edge=2.0)
-                # Filter out extreme odds (> 15) and extreme edge (> 30%)
-                vbs = [v for v in vbs if v["bookmaker_odds"] < 15 and v["edge_percentage"] < 30]
-                all_vb.extend(vbs)
+            # Fetch odds from ALL available sports worldwide
+            all_odds = await get_all_available_odds(max_sports=6)
+            vbs = calculate_value_bets(all_odds, min_edge=2.0)
+            # Filter out extreme odds (> 15) and extreme edge (> 30%)
+            vbs = [v for v in vbs if v["bookmaker_odds"] < 15 and v["edge_percentage"] < 30]
+            all_vb = vbs
 
             all_vb.sort(key=lambda x: x["edge_percentage"], reverse=True)
             real_value_bets = []

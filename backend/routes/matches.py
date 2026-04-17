@@ -12,7 +12,7 @@ from models.schemas import User
 
 # Real API imports
 try:
-    from services.odds_api import get_live_odds, get_scores, SPORT_MAP
+    from services.odds_api import get_live_odds, get_scores, get_all_available_odds, ALL_SPORTS
     from services.football_api import get_upcoming_fixtures, get_live_fixtures, _request as football_request
     REAL_API = True
 except Exception:
@@ -31,9 +31,8 @@ async def get_schedine(request: Request):
     all_schedine = []
     if REAL_API:
         try:
-            odds_data = await get_live_odds("soccer_italy_serie_a")
-            odds_data += await get_live_odds("soccer_epl")
-            random.shuffle(odds_data)
+            all_odds = await get_all_available_odds(max_sports=6)
+            random.shuffle(all_odds)
 
             for i in range(min(12, len(odds_data) // 2)):
                 events_in_slip = odds_data[i*2:(i*2)+random.randint(2, 4)]
@@ -246,11 +245,10 @@ async def get_all_matches():
     """Get matches — tries real API first, falls back to mock"""
     if REAL_API:
         try:
-            # Fetch real odds from The Odds API (Serie A + EPL + NBA)
+            # Fetch real odds from ALL available leagues worldwide
+            all_odds = await get_all_available_odds(max_sports=8)
             real_matches = []
-            for sport_key in ["soccer_italy_serie_a", "soccer_epl", "basketball_nba"]:
-                odds_data = await get_live_odds(sport_key)
-                for event in odds_data[:8]:
+            for event in all_odds:
                     # Get best odds from bookmakers
                     best_odds = {"home": 0, "draw": 0, "away": 0}
                     for bk in event.get("bookmakers", [])[:3]:
@@ -299,10 +297,9 @@ async def get_all_predictions():
     """AI predictions from real matches"""
     if REAL_API:
         try:
-            odds_data = await get_live_odds("soccer_italy_serie_a")
-            odds_data += await get_live_odds("soccer_epl")
+            all_odds = await get_all_available_odds(max_sports=6)
             predictions = []
-            for ev in odds_data[:15]:
+            for ev in all_odds[:30]:
                 # Calculate implied probabilities from odds
                 best = {"home": 0, "draw": 0, "away": 0}
                 for bk in ev.get("bookmakers", [])[:5]:

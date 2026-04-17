@@ -15,7 +15,12 @@ try:
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
-    logger.warning("emergentintegrations not available for weekly report AI")
+
+try:
+    from openai import AsyncOpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 
 REPORT_SYSTEM_PROMPT = """Sei QuotaX AI, un analista sportivo esperto. Genera un breve report settimanale (max 150 parole) in italiano per un utente di betting simulato.
@@ -27,35 +32,41 @@ Tono: professionale ma amichevole. Usa emoji dove appropriato."""
 
 
 async def _generate_ai_suggestion(roi: float, win_rate: float, best_pick: dict) -> str:
-    """Generate AI suggestion using LLM"""
-    if not LLM_AVAILABLE:
-        return _fallback_suggestion(roi, win_rate)
-
-    llm_key = os.environ.get('EMERGENT_LLM_KEY')
-    if not llm_key:
-        return _fallback_suggestion(roi, win_rate)
-
-    try:
-        chat = LlmChat(
-            api_key=llm_key,
-            session_id=f"report_{uuid.uuid4().hex[:8]}",
-            system_message=REPORT_SYSTEM_PROMPT
-        )
-        chat.with_model("openai", "gpt-4.1-mini")
-
-        prompt = f"""Dati della settimana dell'utente:
+    """Generate AI suggestion using LLM (Emergent or OpenAI direct)"""
+    prompt = f"""Dati della settimana dell'utente:
 - ROI settimanale: {roi:+.1f}%
 - Win Rate: {win_rate:.1f}%
 - Miglior pick: {best_pick.get('match', 'N/A')} @ quota {best_pick.get('odds', 'N/A')} (profitto: +€{best_pick.get('profit', 0):.0f})
 
 Genera il report settimanale."""
 
-        user_msg = UserMessage(text=prompt)
-        response = await chat.send_message(user_msg)
-        return response
-    except Exception as e:
-        logger.error(f"Weekly report AI error: {e}")
-        return _fallback_suggestion(roi, win_rate)
+    # Try Emergent first
+    if LLM_AVAILABLE:
+        llm_key = os.environ.get('EMERGENT_LLM_KEY')
+        if llm_key:
+            try:
+                chat = LlmChat(api_key=llm_key, session_id=f"report_{uuid.uuid4().hex[:8]}", system_message=REPORT_SYSTEM_PROMPT)
+                chat.with_model("openai", "gpt-4.1-mini")
+                return await chat.send_message(UserMessage(text=prompt))
+            except Exception as e:
+                logger.error(f"Emergent LLM error: {e}")
+
+    # Fallback to OpenAI direct
+    if OPENAI_AVAILABLE:
+        openai_key = os.environ.get('OPENAI_API_KEY')
+        if openai_key:
+            try:
+                client = AsyncOpenAI(api_key=openai_key)
+                completion = await client.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[{"role": "system", "content": REPORT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+                    max_tokens=500
+                )
+                return completion.choices[0].message.content
+            except Exception as e:
+                logger.error(f"OpenAI error: {e}")
+
+    return _fallback_suggestion(roi, win_rate)
 
 
 def _fallback_suggestion(roi: float, win_rate: float) -> str:

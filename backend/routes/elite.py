@@ -10,6 +10,12 @@ try:
 except ImportError:
     LLM_AVAILABLE = False
 
+try:
+    from openai import AsyncOpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 from services.database import db
 from services.auth_helpers import get_current_user
 from models.schemas import EliteAskRequest
@@ -102,23 +108,32 @@ async def elite_ask(req: EliteAskRequest, request: Request):
 
     # Elite: unlimited — proceed
     try:
-        if not LLM_AVAILABLE:
-            # Fallback when emergentintegrations is not available
-            response = f"Analisi QuotaX AI per: {req.query}\n\nBasandoci sui dati disponibili e le statistiche recenti, ecco la nostra analisi. Nota: il servizio AI completo sara' disponibile a breve con integrazione diretta."
-        else:
+        if LLM_AVAILABLE:
             llm_key = os.environ.get('EMERGENT_LLM_KEY')
-            if not llm_key:
-                raise HTTPException(status_code=500, detail="LLM key not configured")
-
-            chat = LlmChat(
-                api_key=llm_key,
-                session_id=f"elite_{uuid.uuid4().hex[:8]}",
-                system_message=ELITE_SYSTEM_PROMPT
-            )
-            chat.with_model("openai", "gpt-4.1-mini")
-
-            user_msg = UserMessage(text=req.query)
-            response = await chat.send_message(user_msg)
+            if llm_key:
+                chat = LlmChat(api_key=llm_key, session_id=f"elite_{uuid.uuid4().hex[:8]}", system_message=ELITE_SYSTEM_PROMPT)
+                chat.with_model("openai", "gpt-4.1-mini")
+                user_msg = UserMessage(text=req.query)
+                response = await chat.send_message(user_msg)
+            else:
+                raise Exception("No Emergent key")
+        elif OPENAI_AVAILABLE:
+            openai_key = os.environ.get('OPENAI_API_KEY')
+            if openai_key:
+                client = AsyncOpenAI(api_key=openai_key)
+                completion = await client.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[
+                        {"role": "system", "content": ELITE_SYSTEM_PROMPT},
+                        {"role": "user", "content": req.query}
+                    ],
+                    max_tokens=1000
+                )
+                response = completion.choices[0].message.content
+            else:
+                response = f"Analisi QuotaX AI per: {req.query}\n\nServizio AI temporaneamente non disponibile."
+        else:
+            response = f"Analisi QuotaX AI per: {req.query}\n\nServizio AI in manutenzione."
 
         # Save to history (counts toward weekly limit)
         chat_entry = {

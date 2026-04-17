@@ -34,8 +34,8 @@ async def get_schedine(request: Request):
             all_odds = await get_all_available_odds(max_sports=6)
             random.shuffle(all_odds)
 
-            for i in range(min(12, len(odds_data) // 2)):
-                events_in_slip = odds_data[i*2:(i*2)+random.randint(2, 4)]
+            for i in range(min(12, len(all_odds) // 2)):
+                events_in_slip = all_odds[i*2:(i*2)+random.randint(2, 4)]
                 matches = []
                 total_odds = 1.0
                 for ev in events_in_slip:
@@ -279,8 +279,21 @@ async def get_all_matches():
                         "bookmakers_count": len(event.get("bookmakers", [])),
                     })
             if real_matches:
-                logger.info(f"Serving {len(real_matches)} real matches from Odds API")
-                return real_matches
+                # Sort by confidence and ensure diversity across leagues
+                # Max 4 per league to avoid all-Italian list
+                diverse = []
+                league_count = {}
+                random.shuffle(real_matches)
+                # First pass: pick best from each league
+                for m in real_matches:
+                    lg = m["league"]
+                    league_count[lg] = league_count.get(lg, 0) + 1
+                    if league_count[lg] <= 4:
+                        diverse.append(m)
+                    if len(diverse) >= 40:
+                        break
+                logger.info(f"Serving {len(diverse)} matches from {len(set(m['league'] for m in diverse))} leagues")
+                return diverse
         except Exception as e:
             logger.error(f"Real API failed, falling back to mock: {e}")
     return get_cached_matches("all")
@@ -299,8 +312,10 @@ async def get_all_predictions():
     if REAL_API:
         try:
             all_odds = await get_all_available_odds(max_sports=6)
+            random.shuffle(all_odds)  # Mix leagues
             predictions = []
-            for ev in all_odds[:30]:
+            league_pred_count = {}
+            for ev in all_odds:
                 # Calculate implied probabilities from odds
                 best = {"home": 0, "draw": 0, "away": 0}
                 for bk in ev.get("bookmakers", [])[:5]:
@@ -330,11 +345,16 @@ async def get_all_predictions():
                     confidence = 55
                     odds = 2.0
 
-                sport = "soccer" if "soccer" in ev.get("sport_key", "") else "nba"
+                league_name = ev.get("sport_title", "")
+                league_pred_count[league_name] = league_pred_count.get(league_name, 0) + 1
+                if league_pred_count[league_name] > 4:
+                    continue  # Max 4 predictions per league
+
+                sport = "soccer" if "soccer" in ev.get("sport_key", "") else "nba" if "basketball" in ev.get("sport_key", "") else "ufc" if "mma" in ev.get("sport_key", "") else "soccer"
                 predictions.append({
                     "match_id": ev.get("id", ""),
                     "sport": sport,
-                    "league": ev.get("sport_title", ""),
+                    "league": league_name,
                     "home_team": ev.get("home_team", ""),
                     "away_team": ev.get("away_team", ""),
                     "predicted_outcome": predicted,

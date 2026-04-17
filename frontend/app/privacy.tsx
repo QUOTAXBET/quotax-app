@@ -85,7 +85,7 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={s.sectionTitle}>10. Contatti</Text>
         <Text style={s.text}>
-          Per domande sulla privacy, scrivi a: privacy@quotax.bet
+          Per domande sulla privacy, scrivi a: support@quotax.bet
         </Text>
 
         <View style={{ height: 40 }} />

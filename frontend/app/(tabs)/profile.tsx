@@ -79,6 +79,7 @@ export default function ProfileScreen() {
 
   const isProOrElite = user?.subscription_tier === 'pro' || user?.subscription_tier === 'premium';
   const isElite = user?.subscription_tier === 'premium';
+  const isDevUser = user?.email === 'quotax.bet@gmail.com';
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -302,7 +303,8 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Dev Panel - Tier Switcher */}
+        {/* Dev Panel - Solo per quotax.bet@gmail.com */}
+        {isAuthenticated && isDevUser && (
         <TouchableOpacity 
           style={st.devToggle} 
           onPress={() => { Haptics.selectionAsync(); setDevOpen(!devOpen); }}
@@ -314,8 +316,9 @@ export default function ProfileScreen() {
           </View>
           <Ionicons name={devOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
         </TouchableOpacity>
+        )}
 
-        {devOpen && (
+        {devOpen && isDevUser && (
           <View style={st.devPanel}>
             <Text style={st.devLabel}>Piano attuale: <Text style={{ color: getTierColor(user?.subscription_tier || 'free'), fontWeight: '800' }}>{getTierLabel(user?.subscription_tier || 'free')}</Text></Text>
             <Text style={st.devHint}>Seleziona un piano per testare. Le altre tab si aggiorneranno automaticamente.</Text>

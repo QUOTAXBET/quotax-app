@@ -90,7 +90,7 @@ export default function TermsScreen() {
 
         <Text style={s.sectionTitle}>12. Contatti</Text>
         <Text style={s.text}>
-          Per domande sui Termini e Condizioni: legal@quotax.bet
+          Per domande sui Termini e Condizioni: support@quotax.bet
         </Text>
 
         <View style={{ height: 40 }} />
